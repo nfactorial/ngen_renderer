@@ -29,7 +29,6 @@ set(INCLUDE_FILES
         include/texture.h)
 
 include_directories(include)
-include_directories(${GLEW_ROOT_DIRECTORY}/include)
 
 add_library(ngen_opengl STATIC ${SOURCE_FILES} ${INCLUDE_FILES})
 
