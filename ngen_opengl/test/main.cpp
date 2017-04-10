@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
         printf( "Failed to initialize SDL - Error: %s\n", SDL_GetError());
     } else {
         SDL_Window *window = SDL_CreateWindow(
-              "SDL Tutorial"
+              "nGen Renderer - Unit Tests"
             , SDL_WINDOWPOS_UNDEFINED
             , SDL_WINDOWPOS_UNDEFINED
             , SCREEN_WIDTH
