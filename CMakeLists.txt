@@ -11,9 +11,7 @@ option(NGEN_BUILD_TESTS "Build unit tests." ON)
 
 project(ngen_renderer)
 
-include_directories(SYSTEM external/sce_vectormath/include/vectormath/SSE/cpp)
 include_directories(SYSTEM external/ngen/include)
-include_directories(SYSTEM external/boost_1_60_0)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
