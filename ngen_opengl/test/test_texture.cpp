@@ -17,7 +17,7 @@
 #include "texture.h"
 #include "gtest/gtest.h"
 
-//! \brief  Tests the initial state of the display when first created.
+//! \brief  Checks the constructor iniitalizes the object correctly.
 TEST(Texture, Construction) {
     ngen::rendering::ogl::Texture texture;
 

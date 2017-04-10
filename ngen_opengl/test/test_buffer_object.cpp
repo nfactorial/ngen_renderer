@@ -17,7 +17,7 @@
 #include "buffer_object.h"
 #include "gtest/gtest.h"
 
-//! \brief  Tests the initial state of the display when first created.
+//! \brief  Checks the constructor initializes the object correctly.
 TEST(BufferObject, Construction) {
     ngen::rendering::ogl::BufferObject buffer;
 
