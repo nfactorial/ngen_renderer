@@ -44,7 +44,7 @@ static const char TEST_INVALID_FRAGMENT_SHADER[] =
 "    gl_FragColor = fragment_color;\n" \
 "}\n";
 
-//! \brief  Tests the initial state of the display when first created.
+//! \brief  Checks the constructor initializes the object correctly.
 TEST(ShaderObject, Construction) {
     ngen::rendering::ogl::ShaderObject shader;
 
@@ -75,12 +75,12 @@ TEST(ShaderObject, createPixelShader) {
     // Prevent debug output being sent to the console window
     ngen::rendering::ogl::ShaderObject::silentCompilation = true;
 
-    EXPECT_FALSE(shader.createVertexShader(nullptr, 0));
-    EXPECT_FALSE(shader.createVertexShader(nullptr, sizeof(TEST_VALID_FRAGMENT_SHADER)));
-    EXPECT_FALSE(shader.createVertexShader(TEST_VALID_FRAGMENT_SHADER, 0));
+    EXPECT_FALSE(shader.createPixelShader(nullptr, 0));
+    EXPECT_FALSE(shader.createPixelShader(nullptr, sizeof(TEST_VALID_FRAGMENT_SHADER)));
+    EXPECT_FALSE(shader.createPixelShader(TEST_VALID_FRAGMENT_SHADER, 0));
 
-    EXPECT_FALSE(shader.createVertexShader(TEST_INVALID_FRAGMENT_SHADER, sizeof(TEST_INVALID_FRAGMENT_SHADER)));
+    EXPECT_FALSE(shader.createPixelShader(TEST_INVALID_FRAGMENT_SHADER, sizeof(TEST_INVALID_FRAGMENT_SHADER)));
     shader.dispose();
 
-    EXPECT_TRUE(shader.createVertexShader(TEST_VALID_FRAGMENT_SHADER, sizeof(TEST_VALID_FRAGMENT_SHADER)));
+    EXPECT_TRUE(shader.createPixelShader(TEST_VALID_FRAGMENT_SHADER, sizeof(TEST_VALID_FRAGMENT_SHADER)));
 }

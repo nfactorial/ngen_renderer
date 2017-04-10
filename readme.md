@@ -11,6 +11,11 @@ the rendering interface into higher order objects for use by the game itself.
 This library is intended to be a low-level wrapper around the rendering API's, abstracted for use by
 the higher level libraries supplied as part of nGen.
 
+DEPENDECIES
+===========
+nGen uses SDL to manage system initialization, you must have SDL available on your system in-order for
+compilation to succeed. Please see https://www.libsdl.org/
+
 OpenGL
 ======
 The OpenGL library contains a suitable implementation that uses OpenGL to render the game scene.
