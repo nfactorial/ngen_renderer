@@ -21,7 +21,7 @@
 TEST(Texture, Construction) {
     ngen::rendering::ogl::Texture texture;
 
-    EXPECT_EQ(0, texture.getId());
+    EXPECT_EQ(GL_INVALID_VALUE, texture.getId());
 }
 
 
