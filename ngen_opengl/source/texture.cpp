@@ -20,14 +20,34 @@ namespace ngen {
     namespace rendering {
         namespace ogl {
             Texture::Texture()
-            : m_textureId(0) {
+            : m_textureId(GL_INVALID_VALUE) {
                 //
             }
 
             Texture::~Texture() {
-                if (m_textureId) {
+                if (GL_INVALID_VALUE != m_textureId) {
                     glDeleteTextures(1, &m_textureId);
                 }
+            }
+
+            //! \brief Deletes any resources currently in use by this object.
+            void Texture::dispose() {
+                if (GL_INVALID_VALUE != m_textureId) {
+                    glDeleteTextures(1, &m_textureId);
+                    m_textureId  = GL_INVALID_VALUE;
+                }
+            }
+
+            //! \brief Attempts to allocate a texture for use by the running application.
+            bool Texture::create() {
+                if (GL_INVALID_VALUE != m_textureId) {
+                    // TODO: Log
+                    //printf("Texture::create - Texture already created.");
+                    return false;
+                }
+
+                glGenTextures(1, &m_textureId);
+                return GL_INVALID_VALUE != m_textureId;
             }
         }
     }

@@ -26,21 +26,20 @@
 namespace ngen {
     namespace rendering {
         namespace ogl {
-            //! \brief Class wrapper for OpenGL Buffer Objects.
-            //!
-            //! Please see:
-            //!     https://www.opengl.org/sdk/docs/tutorials/ClockworkCoders/loading.php
-            //!     https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glCreateProgram.xhtml
-            //!     https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDeleteProgram.xhtml
-            //! for more detailed information on the actual OpenGL object this class encapsulates.
+            class ShaderObject;
+
+            //! \brief Wrapper around OpenGL shader program object. A shader program consists of a vertex shader
+            //! and an (optional) pixel (fragment) shader.
             class ShaderProgram {
             public:
                 ShaderProgram();
                 ~ShaderProgram();
 
-                GLuint getId() const;
+                void dispose();
 
-                bool create();
+                bool create(ShaderObject *vertexShader, ShaderObject *pixelShader);
+
+                GLuint getId() const;
 
             private:
                 GLuint      m_programId;

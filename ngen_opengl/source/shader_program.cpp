@@ -31,7 +31,34 @@ namespace ngen {
                 }
             }
 
-            bool ShaderProgram::create() {
+            //! \brief Deletes any resources currently allocated by this object.
+            void ShaderProgram::dispose() {
+                if (m_programId) {
+                    glDeleteProgram(m_programId);
+                    m_programId = 0;
+                }
+            }
+
+            //! \brief Attmpts to allocate resources for the shader program using the supplied data.
+            //! \param vertexShader - The vertex shader to be used by the program when rendering.
+            //! \param pixelShader - The pixel shader to be used by the program when rendering.
+            //! \returns True if the shader program was successfully created, otherwise false.
+            bool ShaderProgram::create(ShaderObject *vertexShader, ShaderObject *pixelShader) {
+                if (!vertexShader) {
+                    // log("No vertex shader specified.");
+                    return false;
+                }
+
+                if (!pixelShader) {
+                    // log("No pixel shader specified.");
+                    return false;
+                }
+
+                if (m_programId) {
+                    // log("ShaderProgram already exists.");
+                    return false;
+                }
+
                 m_programId = glCreateProgram();
                 return (m_programId != 0);
             }
