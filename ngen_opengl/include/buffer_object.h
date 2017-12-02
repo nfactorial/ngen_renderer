@@ -37,6 +37,8 @@ namespace ngen {
                 BufferObject();
                 ~BufferObject();
 
+                void dispose();
+
                 GLuint getId() const;
 
                 bool isDynamic() const;

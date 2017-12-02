@@ -33,6 +33,14 @@ namespace ngen {
                 }
             }
 
+            //! \brief Deletes any resources currently allocated by this object.
+            void BufferObject::dispose() {
+                if (GL_INVALID_VALUE != m_bufferId) {
+                    glDeleteBuffers(1, &m_bufferId);
+                    m_bufferId = GL_INVALID_VALUE;
+                }
+            }
+
             //! \brief  Creates a buffer object whose content will not be updated frequently.
             //! \param  dataLength [in] - The length (in bytes) of data to be contained in the buffer.
             //! \return <em>True</em> if the buffer created successfully otherwise <em>false</em>.
