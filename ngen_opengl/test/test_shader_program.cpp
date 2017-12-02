@@ -31,5 +31,5 @@ TEST(ShaderProgram, Construction) {
 TEST(ShaderProgram, create) {
     ngen::rendering::ogl::ShaderProgram program;
 
-    EXPECT_TRUE(program.create());
+    EXPECT_FALSE(program.create(nullptr, nullptr));
 }
