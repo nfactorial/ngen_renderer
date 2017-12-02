@@ -46,6 +46,10 @@ namespace ngen {
                     return false;
                 }
 
+                //glBindTexture(GL_TEXTURE_2D, m_textureId);
+                //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+                //glTexParameter(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
                 glGenTextures(1, &m_textureId);
                 return GL_INVALID_VALUE != m_textureId;
             }
