@@ -12,9 +12,11 @@ add_definitions(-DGLEW_STATIC)
 
 set(SOURCE_FILES
         source/glew.cpp
+        source/vertex_array_object.cpp
         source/shader_program.cpp
         source/buffer_object.cpp
         source/shader_object.cpp
+        source/context_state.cpp
         source/texture.cpp)
 
 set(INCLUDE_FILES
@@ -23,6 +25,8 @@ set(INCLUDE_FILES
         include/GL/glxew.h
         include/GL/wglew.h
         include/platform.h
+        include/context_state.h
+        include/vertex_array_object.h
         include/shader_program.h
         include/buffer_object.h
         include/shader_object.h
