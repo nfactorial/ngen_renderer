@@ -46,6 +46,7 @@ namespace ngen {
 
                 bool createStatic(size_t dataLength);
                 bool createDynamic(size_t dataLength);
+                bool createIndexBuffer(size_t dataLength);
 
             private:
                 bool createBufferObject(GLenum target, size_t dataLength, const GLvoid *data, GLenum usage);

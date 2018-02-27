@@ -38,6 +38,9 @@ namespace ngen {
                 if (GL_INVALID_VALUE != m_bufferId) {
                     glDeleteBuffers(1, &m_bufferId);
                     m_bufferId = GL_INVALID_VALUE;
+
+                    m_dataLength = 0;
+                    m_isDynamic = false;
                 }
             }
 
@@ -52,7 +55,19 @@ namespace ngen {
             //! \param  dataLength [in] - The length (in bytes) of data to be contained in the buffer.
             //! \return <em>True</em> if the buffer created successfully otherwise <em>false</em>.
             bool BufferObject::createDynamic(size_t dataLength) {
-                return createBufferObject(GL_ARRAY_BUFFER, dataLength, nullptr, GL_DYNAMIC_DRAW);
+                if (createBufferObject(GL_ARRAY_BUFFER, dataLength, nullptr, GL_DYNAMIC_DRAW)) {
+                    m_isDynamic = true;
+                    return true;
+                }
+
+                return false;
+            }
+
+            //! \brief  Creates a buffer object whose content is to be used as an index buffer for primitive rendering.
+            //! \param dataLength [in] - The length (in bytes) of data to be contained in the buffer.
+            //! \returns <em>True</em> if the buffer created successfully otherwise <em>false</em>.
+            bool BufferObject::createIndexBuffer(size_t dataLength) {
+                return createBufferObject(GL_ELEMENT_ARRAY_BUFFER, dataLength, nullptr, GL_STATIC_DRAW);
             }
 
             //! \brief Creates and initializes a buffer object of the specified type and size.
@@ -77,6 +92,7 @@ namespace ngen {
                 glBindBuffer(target, m_bufferId);
                 glBufferData(target, dataLength, data, usage);
 
+                m_dataLength = dataLength;
                 return true;
             }
         }
