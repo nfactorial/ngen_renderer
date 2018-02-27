@@ -2,11 +2,6 @@ project(ngen_opengl_tests)
 
 find_package(SDL2 REQUIRED)
 
-include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
-include_directories(${SDL2_INCLUDE_DIR})
-
-include_directories(${SDL_ROOT_DIRECTORY}/include)
-
 # add_definitions(-DSDL_MAIN_NEEDED)
 add_definitions(-DSDL_MAIN_HANDLED)
 
@@ -20,6 +15,13 @@ add_executable(ngen_opengl_tests
         test_shader_object.cpp
         test_texture.cpp)
 
+target_include_directories(ngen_opengl_tests PUBLIC
+    $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${gtest_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${SDL2_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${SDL_ROOT_DIRECTORY}/include>
+)
+
 target_link_libraries(ngen_opengl_tests ${SDL2_LIBRARY})
-target_link_libraries(ngen_opengl_tests ngen_opengl opengl32)
+target_link_libraries(ngen_opengl_tests ngen::ogl opengl32)
 target_link_libraries(ngen_opengl_tests gtest)

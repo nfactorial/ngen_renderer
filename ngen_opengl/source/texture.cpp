@@ -39,12 +39,18 @@ namespace ngen {
             }
 
             //! \brief Attempts to allocate a texture for use by the running application.
-            bool Texture::create() {
+            //! \param width - The width (in pixels) of the texture to be created.
+            //! \param height - The height (in pixels) of the texture to be created.
+            //! \returns True if the texture was created successfully otherwise false.
+            bool Texture::create(int width, int height) {
                 if (GL_INVALID_VALUE != m_textureId) {
                     // TODO: Log
                     //printf("Texture::create - Texture already created.");
                     return false;
                 }
+
+                // For cubemap textures, see:
+                // http://www.nvidia.com/object/cube_map_ogl_tutorial.html
 
                 //glBindTexture(GL_TEXTURE_2D, m_textureId);
                 //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);

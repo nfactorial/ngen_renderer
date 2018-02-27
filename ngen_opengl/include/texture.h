@@ -31,8 +31,9 @@ namespace ngen {
                 Texture();
                 ~Texture();
 
-                bool create();
                 void dispose();
+
+                bool create(int width, int height);
 
                 GLuint getId() const;
 

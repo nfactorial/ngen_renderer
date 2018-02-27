@@ -28,9 +28,30 @@ set(INCLUDE_FILES
         include/shader_object.h
         include/texture.h)
 
-include_directories(include)
+add_library(ngen_opengl STATIC
+    ${SOURCE_FILES}
+    ${INCLUDE_FILES}
+)
 
-add_library(ngen_opengl STATIC ${SOURCE_FILES} ${INCLUDE_FILES})
+add_library(ngen::ogl ALIAS ngen_opengl)
+
+target_include_directories(ngen_opengl PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/ngen/renderer/opengl>
+)
+
+install(TARGETS ngen_opengl EXPORT ngen_opengl_targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+
+install(EXPORT ngen_opengl_targets
+    FILE ngen_opengl_targets.cmake
+    NAMESPACE ngen::
+    DESTINATION lib/cmake/ngen
+)
 
 if (NGEN_BUILD_TESTS)
     add_subdirectory(test)

@@ -45,14 +45,39 @@ namespace ngen {
             //! \param  dataLength [in] - The length (in bytes) of data to be contained in the buffer.
             //! \return <em>True</em> if the buffer created successfully otherwise <em>false</em>.
             bool BufferObject::createStatic(size_t dataLength) {
-                return false;
+                return createBufferObject(GL_ARRAY_BUFFER, dataLength, nullptr, GL_STATIC_DRAW);
             }
 
             //! \brief  Creates a buffer object whose content will be updated frequently.
             //! \param  dataLength [in] - The length (in bytes) of data to be contained in the buffer.
             //! \return <em>True</em> if the buffer created successfully otherwise <em>false</em>.
             bool BufferObject::createDynamic(size_t dataLength) {
-                return false;
+                return createBufferObject(GL_ARRAY_BUFFER, dataLength, nullptr, GL_DYNAMIC_DRAW);
+            }
+
+            //! \brief Creates and initializes a buffer object of the specified type and size.
+            //! \param target [in] - Specifies the target buffer object.
+            //! \param dataLength [in] - The size (in bytes) of the buffer objects data store.
+            //! \param usage [in] - Specifies the usage pattern of the data store.
+            //! \returns True if the buffer was created successfully otherwise false.
+            bool BufferObject::createBufferObject(GLenum target, size_t dataLength, const GLvoid *data, GLenum usage) {
+                if (GL_INVALID_VALUE != m_bufferId) {
+                    return false;
+                }
+
+                if (dataLength == 0) {
+                    return false;
+                }
+
+                glGenBuffers(1, &m_bufferId);
+                if (GL_INVALID_VALUE == m_bufferId) {
+                    return false;
+                }
+
+                glBindBuffer(target, m_bufferId);
+                glBufferData(target, dataLength, data, usage);
+
+                return true;
             }
         }
     }
