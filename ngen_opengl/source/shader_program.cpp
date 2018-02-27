@@ -39,7 +39,7 @@ namespace ngen {
                 }
             }
 
-            //! \brief Attmpts to allocate resources for the shader program using the supplied data.
+            //! \brief Attempts to allocate resources for the shader program using the supplied data.
             //! \param vertexShader - The vertex shader to be used by the program when rendering.
             //! \param pixelShader - The pixel shader to be used by the program when rendering.
             //! \returns True if the shader program was successfully created, otherwise false.

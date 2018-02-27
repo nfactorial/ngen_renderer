@@ -48,6 +48,9 @@ namespace ngen {
                 bool createDynamic(size_t dataLength);
 
             private:
+                bool createBufferObject(GLenum target, size_t dataLength, const GLvoid *data, GLenum usage);
+
+            private:
                 GLuint      m_bufferId;
                 size_t      m_dataLength;
                 bool        m_isDynamic;
