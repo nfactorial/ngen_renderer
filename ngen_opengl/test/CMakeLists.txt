@@ -1,5 +1,8 @@
 project(ngen_opengl_tests)
 
+# TODO: This shouldn't be hard-coded in here
+set(SDL2_PATH "C:\\Library\\Frameworks\\SDL2-2.0.8\\i686-w64-mingw32")
+
 find_package(SDL2 REQUIRED)
 
 # add_definitions(-DSDL_MAIN_NEEDED)
@@ -19,7 +22,6 @@ target_include_directories(ngen_opengl_tests PUBLIC
     $<BUILD_INTERFACE:${gtest_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${gtest_SOURCE_DIR}>
     $<BUILD_INTERFACE:${SDL2_INCLUDE_DIR}>
-    $<BUILD_INTERFACE:${SDL_ROOT_DIRECTORY}/include>
 )
 
 target_link_libraries(ngen_opengl_tests ${SDL2_LIBRARY})
