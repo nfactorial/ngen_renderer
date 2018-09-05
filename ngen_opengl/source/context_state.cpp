@@ -22,6 +22,7 @@ namespace ngen {
         namespace ogl {
             ContextState::ContextState()
             : m_activeProgram(0)
+            , m_frameBuffer(0)
             , m_depthFuncValid(false)
             , m_cullModeValid(false)
             {
@@ -30,11 +31,9 @@ namespace ngen {
                 m_depthWrite.isValid = false;
             }
 
-            ContextState::~ContextState() {
-            }
-
             //! \brief Informs the state that its knowledge of the context is no longer valid.
             void ContextState::invalidate() {
+                m_frameBuffer = 0;
                 m_activeProgram = 0;
 
                 m_depthFuncValid = false;
@@ -47,11 +46,30 @@ namespace ngen {
 
             //! \brief Enables the specified program on the OpenGL context we represent.
             //! \param programId [in] - Identifier of the OpenGL shader program to be enabled.
-            void ContextState::useProgram(GLuint programId) {
+            bool ContextState::useProgram(GLuint programId) {
                 if (programId != m_activeProgram) {
                     glUseProgram(programId);
                     m_activeProgram = programId;
+                    return true;
                 }
+
+                return false;
+            }
+
+            /**
+             * Binds the specified frame buffer to the state.
+             * If this method returns false, the supplied frame buffer was already bound to the device.
+             * @param frameBuffer - The identifier of the OpenGL frame buffer object to be bound.
+             * @return True if the frame buffer was bound otherwise fals.e
+             */
+            bool ContextState::bindFrameBuffer(GLuint frameBuffer) {
+                if (m_frameBuffer != frameBuffer) {
+                    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+                    m_frameBuffer = frameBuffer;
+                    return true;
+                }
+
+                return false;
             }
 
             //! \brief  Enables or disables writing to the depth buffer during rendering.
