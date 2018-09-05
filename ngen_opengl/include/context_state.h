@@ -41,11 +41,14 @@ namespace ngen {
 
             public:
                 ContextState();
-                ~ContextState();
+                ~ContextState() = default;
 
                 void invalidate();
 
-                void useProgram(GLuint programId);
+                bool useProgram(GLuint programId);
+
+                GLuint getFrameBuffer() const;
+                bool bindFrameBuffer(GLuint frameBuffer);
 
                 bool getDepthWrite() const;
                 void setDepthWrite(bool enable);
@@ -63,7 +66,8 @@ namespace ngen {
                 void setCullMode(kCullMode cullMode);
 
             private:
-                GLuint  m_activeProgram;
+                GLuint m_activeProgram;
+                GLuint m_frameBuffer;
 
                 EnableState m_depthWrite;
                 EnableState m_depthTest;
@@ -75,6 +79,14 @@ namespace ngen {
                 bool m_cullModeValid;
                 kCullMode m_cullMode;
             };
+
+            /**
+             * Retrieves the frame buffer currently bound to the state.
+             * @return The frame buffer id current bound to the state.
+             */
+            inline GLuint ContextState::getFrameBuffer() const {
+                return m_frameBuffer;
+            }
 
             //! \brief  Determines whether or not depth testing is currently enabled.
             //! \returns <em>True</em> if depth testing is enabled otherwise <em>false</em>.
