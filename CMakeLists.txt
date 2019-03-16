@@ -32,3 +32,4 @@ if (NGEN_BUILD_OPENGL)
 endif()
 
 add_subdirectory(ngen_opengl)
+add_subdirectory(example)
