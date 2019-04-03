@@ -14,42 +14,43 @@
 // limitations under the License.
 //
 
-#ifndef NGEN_OPENGL_TEXTURE_H
-#define NGEN_OPENGL_TEXTURE_H
+#ifndef NGEN_VULKAN_CONTEXT
+#define NGEN_VULKAN_CONTEXT
 
 ////////////////////////////////////////////////////////////////////////////
 
-#include "platform.h"
+#include <vulkan/vulkan.h>
+
 
 ////////////////////////////////////////////////////////////////////////////
 
 namespace ngen {
     namespace rendering {
-        namespace ogl {
-            class Texture {
-            public:
-                Texture();
-                ~Texture();
+        class VulkanContext {
+        public:
+            VulkanContext();
+            ~VulkanContext();
 
-                void dispose();
+            void dispose();
+            bool initialize();
 
-                bool create(int width, int height);
+        private:
+            bool createInstance();
 
-                GLuint getId() const;
+            VkPhysicalDevice selectDevice();
+            VkDevice createDevice(VkPhysicalDevice physicalDevice);
 
-            private:
-                GLuint      m_textureId;
-            };
+            bool isDeviceSuitable(VkPhysicalDevice device);
+            int findQueueFamily(VkPhysicalDevice device, VkQueueFlags flags) const;
 
-            //! \brief  Retrieves the identifier of the opengl texture.
-            //! \return The identifier of the opengl texture.
-            inline GLuint Texture::getId() const {
-                return m_textureId;
-            }
-        }
+        private:
+            VkQueue m_graphicsQueue;
+            VkInstance m_instance;
+            VkDevice m_device;
+        };
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
-#endif //NGEN_OPENGL_TEXTURE_H
+#endif //NGEN_VULKAN_CONTEXT

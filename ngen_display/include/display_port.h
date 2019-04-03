@@ -14,25 +14,41 @@
 // limitations under the License.
 //
 
-#ifndef NGEN_OPENGL_PLATFORM_H
-#define NGEN_OPENGL_PLATFORM_H
+#ifndef NGEN_DISPLAY_PORT
+#define NGEN_DISPLAY_PORT
 
 ////////////////////////////////////////////////////////////////////////////
 
-/*
-#define GL_GLEXT_PROTOTYPES
+#include <vector>
 
-#if defined(__APPLE__)
-    #include <OpenGL/gl.h>
-    #include <OpenGL/glext.h>
-#else
-    #include <GL/gl.h>
-    #include <GL/glext.h>
-#endif //defined(__APPLE)
-*/
-
-#include "GL/glew.h"
 
 ////////////////////////////////////////////////////////////////////////////
 
-#endif //NGEN_RENDERER_PLATFORM_H
+class Ray;
+
+namespace ngen {
+    namespace display {
+        class DisplayPort {
+        public:
+            DisplayPort();
+            ~DisplayPort();
+
+            void renderContent();
+            void createRay(Ray &ray, float x, float y);
+
+        private:
+            std::vector<DisplayPort*> m_children;
+
+            DisplayPort *m_parent;
+            bool        m_hidden;
+            int         m_x;
+            int         m_y;
+            int         m_width;
+            int         m_height;
+        };
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////
+
+#endif //NGEN_DISPLAY_PORT

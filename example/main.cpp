@@ -1,9 +1,8 @@
 
-#include "GL/glew.h"
-
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_main.h>
+#include <vulkan_context.h>
 
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
@@ -22,7 +21,11 @@ void processEvent(const SDL_Event &event, bool &running) {
 int main(int argc, char **argv) {
     int result = -1;
 
-    printf("ngen example");
+    setbuf(stdout, 0);
+
+    printf("ngen example\n");
+
+    ngen::rendering::VulkanContext vulkan;
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf( "Failed to initialize SDL - Error: %s\n", SDL_GetError());
@@ -37,36 +40,24 @@ int main(int argc, char **argv) {
         );
 
         if (!window) {
-            printf("Failed to create window for testing.");
+            printf("Failed to create window for testing.\n");
         } else {
-            SDL_GLContext context = SDL_GL_CreateContext(window);
-            if (!context) {
-                printf("Failed to create opengl context - Error: %s\n", SDL_GetError());
-            } else {
-                SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-                SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-                SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
-                SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+            vulkan.initialize();
 
-                SDL_GL_SetSwapInterval(1);
+            printf("main entry point\n");
 
-                printf("main entry point");
+            bool running = true;
+            while (running) {
+                SDL_Event event;
 
-                glewInit();
-
-                bool running = true;
-                while (running) {
-                    SDL_Event event;
-
-                    while (SDL_PollEvent(&event)) {
-                        processEvent(event, running);
-                    }
-
-                    SDL_Delay(1);
+                while (SDL_PollEvent(&event)) {
+                    processEvent(event, running);
                 }
 
-                SDL_GL_DeleteContext(context);
+                SDL_Delay(1);
             }
+
+            vulkan.dispose();
 
             SDL_DestroyWindow(window);
         }
