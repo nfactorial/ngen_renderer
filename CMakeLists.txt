@@ -1,11 +1,17 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 enable_testing()
 
-set(CMAKE_CXX_STANDARD 14)
+MESSAGE(STATUS "SDL2DIR " $ENV{SDL2DIR})
+MESSAGE(STATUS "SDL2_PATH " $ENV{SDL2_PATH})
+
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_ARCHITECTURES x86_64)
+
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 
 add_subdirectory(external)
 
@@ -13,23 +19,18 @@ option(NGEN_BUILD_TESTS "Build unit tests." ON)
 
 project(ngen_renderer)
 
-include_directories(SYSTEM external/ngen/include)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_modules")
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+find_package(Threads REQUIRED)
+find_package(Vulkan REQUIRED)
+find_package(SDL2 REQUIRED)
 
-# Enable correct rendering API
-if (NGEN_BUILD_OPENGL)
-    find_package(OpenGL REQUIRED)
+IF (NOT Vulkan_FOUND)
+    message(FATAL_ERROR "Could not find Vulkan library")
+ELSE()
+    message(STATUS ${Vulkan_LIBRARY})
+ENDIF()
 
-    if(OPENGL_FOUND)
-        MESSAGE( "OpenGL library found successfully.")
-        include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
-    else(OPENGL_FOUND)
-        MESSAGE( "Unable to find OpenGL library, please make sure it is installed." )
-    endif (OPENGL_FOUND)
-
-    include_directories(${ngenOpenGL_SOURCE_DIR}/include)
-endif()
-
-add_subdirectory(ngen_opengl)
+add_subdirectory(ngen_vulkan)
+add_subdirectory(ngen_display)
 add_subdirectory(example)
