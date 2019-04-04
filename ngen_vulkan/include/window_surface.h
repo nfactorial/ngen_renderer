@@ -14,49 +14,42 @@
 // limitations under the License.
 //
 
-#ifndef NGEN_VULKAN_CONTEXT
-#define NGEN_VULKAN_CONTEXT
+#ifndef NGEN_WINDOW_SURFACE
+#define NGEN_WINDOW_SURFACE
 
 ////////////////////////////////////////////////////////////////////////////
 
-#include "window_surface.h"
+#include <windef.h>
+#include <vulkan/vulkan.h>
 
 
 ////////////////////////////////////////////////////////////////////////////
 
+// TODO: Need to add platform specific implementations
 namespace ngen {
     namespace rendering {
-        class WindowSurface;
-
-        class VulkanContext {
+        class WindowSurface {
         public:
-            VulkanContext();
-            ~VulkanContext();
+            WindowSurface();
+            ~WindowSurface();
 
-            void dispose();
-            bool initialize(HWND hwnd);
+            void dispose(VkInstance instance);
+            bool initialize(VkInstance instance, HWND hwnd);
 
-        private:
-            bool createInstance();
-
-            VkPhysicalDevice selectDevice();
-            VkDevice createDevice(VkPhysicalDevice physicalDevice);
-
-            bool isDeviceSuitable(VkPhysicalDevice device);
-            int findQueueFamily(VkPhysicalDevice device, VkQueueFlags flags) const;
-            int findPresentationQueue(VkPhysicalDevice device, WindowSurface &surface) const;
+            VkSurfaceKHR getSurface() const;
 
         private:
-            WindowSurface m_windowSurface;
-            VkInstance m_instance;
-            VkDevice m_device;
 
-            VkQueue m_presentationQueue;
-            VkQueue m_graphicsQueue;
+        private:
+            VkSurfaceKHR m_surface;
         };
+
+        inline VkSurfaceKHR WindowSurface::getSurface() const {
+            return m_surface;
+        }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
-#endif //NGEN_VULKAN_CONTEXT
+#endif //NGEN_WINDOW_SURFACE
