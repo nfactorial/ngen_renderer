@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <SDL_main.h>
 #include <vulkan_context.h>
+#include <SDL_syswm.h>
 
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
@@ -25,24 +26,27 @@ int main(int argc, char **argv) {
 
     printf("ngen example\n");
 
-    ngen::rendering::VulkanContext vulkan;
-
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
         printf( "Failed to initialize SDL - Error: %s\n", SDL_GetError());
     } else {
         SDL_Window *window = SDL_CreateWindow(
-                "nGen Renderer - Example"
+                "nGen Vulkan Example"
                 , SDL_WINDOWPOS_UNDEFINED
                 , SDL_WINDOWPOS_UNDEFINED
                 , SCREEN_WIDTH
                 , SCREEN_HEIGHT
-                , SDL_WINDOW_OPENGL
+                , SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
         );
 
         if (!window) {
             printf("Failed to create window for testing.\n");
         } else {
-            vulkan.initialize();
+            SDL_SysWMinfo wmInfo;
+            SDL_VERSION(&wmInfo.version);
+            SDL_GetWindowWMInfo(window, &wmInfo);
+
+            ngen::rendering::VulkanContext vulkan;
+            vulkan.initialize(wmInfo.info.win.window);
 
             printf("main entry point\n");
 

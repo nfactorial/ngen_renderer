@@ -19,20 +19,22 @@
 
 ////////////////////////////////////////////////////////////////////////////
 
-#include <vulkan/vulkan.h>
+#include "window_surface.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
 
 namespace ngen {
     namespace rendering {
+        class WindowSurface;
+
         class VulkanContext {
         public:
             VulkanContext();
             ~VulkanContext();
 
             void dispose();
-            bool initialize();
+            bool initialize(HWND hwnd);
 
         private:
             bool createInstance();
@@ -42,11 +44,15 @@ namespace ngen {
 
             bool isDeviceSuitable(VkPhysicalDevice device);
             int findQueueFamily(VkPhysicalDevice device, VkQueueFlags flags) const;
+            int findPresentationQueue(VkPhysicalDevice device, WindowSurface &surface) const;
 
         private:
-            VkQueue m_graphicsQueue;
+            WindowSurface m_windowSurface;
             VkInstance m_instance;
             VkDevice m_device;
+
+            VkQueue m_presentationQueue;
+            VkQueue m_graphicsQueue;
         };
     }
 }

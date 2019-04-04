@@ -3,37 +3,54 @@
 //
 
 #include <vulkan/vulkan.h>
-#include "vulkan_context.h"
 #include <vector>
 #include <cstdio>
+#include "vulkan_context.h"
+#include "vulkan_error.h"
+
+namespace {
+    const uint32_t kVulkanExtensionCount = 2;
+    const char *kVulkanExtensions[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        "VK_KHR_win32_surface"
+    };
+}
 
 namespace ngen {
     namespace rendering {
         VulkanContext::VulkanContext()
-        : m_graphicsQueue(VK_NULL_HANDLE)
-        , m_instance(VK_NULL_HANDLE)
-        , m_device(VK_NULL_HANDLE) {
+        : m_instance(VK_NULL_HANDLE)
+        , m_device(VK_NULL_HANDLE)
+        , m_presentationQueue(VK_NULL_HANDLE)
+        , m_graphicsQueue(VK_NULL_HANDLE) {
         }
 
         VulkanContext::~VulkanContext() {
         }
 
+        //! \brief Releases all resources currently referenced by this object.
         void VulkanContext::dispose() {
-            m_graphicsQueue = VK_NULL_HANDLE;
-
-            if (m_device != VK_NULL_HANDLE) {
-                vkDestroyDevice(m_device, nullptr);
-                m_device = VK_NULL_HANDLE;
-            }
-
             if (VK_NULL_HANDLE != m_instance) {
+                m_graphicsQueue = VK_NULL_HANDLE;
+                m_presentationQueue = VK_NULL_HANDLE;
+
+                if (m_device != VK_NULL_HANDLE) {
+                    vkDestroyDevice(m_device, nullptr);
+                    m_device = VK_NULL_HANDLE;
+                }
+
+                m_windowSurface.dispose(m_instance);
+
                 vkDestroyInstance(m_instance, nullptr);
                 m_instance = VK_NULL_HANDLE;
             }
         }
 
-        bool VulkanContext::initialize() {
+        //! \brief Prepares the object for use by the application.
+        //! \returns True if the object initialized successfully otherwise false.
+        bool VulkanContext::initialize(HWND hwnd) { // TODO: Should be platform agnostic
             if (m_device != VK_NULL_HANDLE) {
+                printf("VulkanContext already initialized\n");
                 return false;
             }
 
@@ -49,29 +66,37 @@ namespace ngen {
                     printf("\t%s\n", extension.extensionName);
                 }
 
-                m_device = createDevice(selectDevice());
+                if (m_windowSurface.initialize(m_instance, hwnd)) {
+                    m_device = createDevice(selectDevice());
+                    if (VK_NULL_HANDLE != m_device) {
+                        return true;
+                    }
+                }
             }
 
-            return VK_NULL_HANDLE != m_device;
+            dispose();
+            return false;
         }
 
         bool VulkanContext::createInstance() {
             VkApplicationInfo appInfo = {};
 
             appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-            appInfo.pApplicationName = "Hello Triangle";
+            appInfo.pApplicationName = "nGen Vulkan Example";
             appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-            appInfo.pEngineName = "No Engine";
+            appInfo.pEngineName = "nGen";
             appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
             appInfo.apiVersion = VK_API_VERSION_1_0;
 
             VkInstanceCreateInfo createInfo = {};
             createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
             createInfo.pApplicationInfo = &appInfo;
+            createInfo.enabledExtensionCount = kVulkanExtensionCount;
+            createInfo.ppEnabledExtensionNames = kVulkanExtensions;
 
             VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
             if (result != VK_SUCCESS) {
-                printf("Failed to create instance!\n");
+                printf("Failed to create instance: %s!\n", getVulkanResultString(result));
                 return false;
             }
 
@@ -91,14 +116,14 @@ namespace ngen {
 
                 for (const auto &device : devices) {
                     if (isDeviceSuitable(device)) {
-                        printf("Selected device for rendering");
+                        printf("Selected device for rendering\n");
                         return device;
                     }
                 }
 
-                printf("Unable to find a suitable device for use by the application.");
+                printf("Unable to find a suitable device for use by the application.\n");
             } else {
-                printf("Cannot find GPU with Vulkan support");
+                printf("Cannot find GPU with Vulkan support\n");
             }
 
             return VK_NULL_HANDLE;
@@ -130,6 +155,7 @@ namespace ngen {
                 VkDevice device;
                 if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) == VK_SUCCESS) {
                     vkGetDeviceQueue(device, findQueueFamily(physicalDevice, VK_QUEUE_GRAPHICS_BIT), 0, &m_graphicsQueue);
+                    vkGetDeviceQueue(device, findPresentationQueue(physicalDevice, m_windowSurface), 0, &m_presentationQueue);
                     return device;
                 }
             }
@@ -142,8 +168,15 @@ namespace ngen {
         //! \returns True if the device is suitable otherwise false.
         bool VulkanContext::isDeviceSuitable(VkPhysicalDevice physicalDevice) {
             const int graphicsQueue = findQueueFamily(physicalDevice, VK_QUEUE_GRAPHICS_BIT);
+            const int presentationQueue = findPresentationQueue(physicalDevice, m_windowSurface);
 
             if (-1 == graphicsQueue) {
+                printf("Unable to find graphics queue\n");
+                return false;
+            }
+
+            if (-1 == presentationQueue) {
+                printf("Unable to find presentation queue\n");
                 return false;
             }
 
@@ -171,6 +204,34 @@ namespace ngen {
                 index++;
             }
 
+            return -1;
+        }
+
+        //! \brief Retrieves the index of the specified queue within the specified physical device.
+        //! \param physicalDevice [in] - The device whose available queues are to be checked.
+        //! \param flags [in] - The flags of the particular queue we are to scan for.
+        //! \returns Index of the requested queue within the device or -1 if it could not be found.
+        int VulkanContext::findPresentationQueue(VkPhysicalDevice device, WindowSurface &surface) const {
+            uint32_t queueFamilyCount = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+            std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+
+            vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+            int index = 0;
+            for (const auto &queueFamily : queueFamilies) {
+                VkBool32 presentSupport = false;
+
+                vkGetPhysicalDeviceSurfaceSupportKHR(device, index, surface.getSurface(), &presentSupport);
+                if (queueFamily.queueCount > 0 && presentSupport) {
+                    return index;
+                }
+
+                index++;
+            }
+
+            printf("Scanned %u queues but found no presentation support\n", queueFamilyCount);
             return -1;
         }
     }
