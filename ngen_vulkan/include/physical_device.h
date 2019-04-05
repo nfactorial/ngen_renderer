@@ -14,40 +14,43 @@
 // limitations under the License.
 //
 
-#ifndef NGEN_WINDOW_SURFACE
-#define NGEN_WINDOW_SURFACE
+#ifndef NGEN_VULKAN_PHYSICAL_DEVICE
+#define NGEN_VULKAN_PHYSICAL_DEVICE
 
 ////////////////////////////////////////////////////////////////////////////
 
-#include <windef.h>
-#include <vulkan/vulkan.h>
+#include <memory>
+#include <vector>
+#include "window_surface.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
 
-// TODO: Need to add platform specific implementations
 namespace ngen::vulkan {
-    class WindowSurface {
+    class PhysicalDevice {
     public:
-        WindowSurface();
-        ~WindowSurface();
+        PhysicalDevice();
+        explicit PhysicalDevice(VkPhysicalDevice physicalDevice);
+        ~PhysicalDevice();
 
-        void dispose(VkInstance instance);
-        bool initialize(VkInstance instance, HWND hwnd);
+        static uint32_t enumerate(std::vector<PhysicalDevice> &result, VkInstance instance);
 
-        VkSurfaceKHR getSurface() const;
-
-    private:
+        operator VkPhysicalDevice() const;
 
     private:
-        VkSurfaceKHR m_surface;
+        void extractQueueFamilies();
+
+    private:
+        std::vector<VkQueueFamilyProperties> m_queueFamilies;
+
+        VkPhysicalDevice m_handle;
     };
 
-    inline VkSurfaceKHR WindowSurface::getSurface() const {
-        return m_surface;
+    inline PhysicalDevice::operator VkPhysicalDevice() const {
+        return m_handle;
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
-#endif //NGEN_WINDOW_SURFACE
+#endif //NGEN_VULKAN_PHYSICAL_DEVICE

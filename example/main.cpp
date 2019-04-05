@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
             SDL_VERSION(&wmInfo.version);
             SDL_GetWindowWMInfo(window, &wmInfo);
 
-            ngen::rendering::VulkanContext vulkan;
+            ngen::vulkan::VulkanContext vulkan;
             vulkan.initialize(wmInfo.info.win.window);
 
             printf("main entry point\n");
