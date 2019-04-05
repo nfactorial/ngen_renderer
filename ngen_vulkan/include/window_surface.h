@@ -26,27 +26,25 @@
 ////////////////////////////////////////////////////////////////////////////
 
 // TODO: Need to add platform specific implementations
-namespace ngen {
-    namespace rendering {
-        class WindowSurface {
-        public:
-            WindowSurface();
-            ~WindowSurface();
+namespace ngen::vulkan {
+    class WindowSurface {
+    public:
+        WindowSurface();
+        ~WindowSurface();
 
-            void dispose(VkInstance instance);
-            bool initialize(VkInstance instance, HWND hwnd);
+        void dispose(VkInstance instance);
+        bool initialize(VkInstance instance, HWND hwnd);
 
-            VkSurfaceKHR getSurface() const;
+        VkSurfaceKHR getSurface() const;
 
-        private:
+    private:
 
-        private:
-            VkSurfaceKHR m_surface;
-        };
+    private:
+        VkSurfaceKHR m_surface;
+    };
 
-        inline VkSurfaceKHR WindowSurface::getSurface() const {
-            return m_surface;
-        }
+    inline VkSurfaceKHR WindowSurface::getSurface() const {
+        return m_surface;
     }
 }
 

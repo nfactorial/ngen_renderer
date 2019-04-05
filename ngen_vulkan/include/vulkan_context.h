@@ -19,42 +19,44 @@
 
 ////////////////////////////////////////////////////////////////////////////
 
+#include <vector>
+#include "physical_device.h"
 #include "window_surface.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
 
-namespace ngen {
-    namespace rendering {
-        class WindowSurface;
+namespace ngen::vulkan {
+    class WindowSurface;
 
-        class VulkanContext {
-        public:
-            VulkanContext();
-            ~VulkanContext();
+    class VulkanContext {
+    public:
+        VulkanContext();
+        ~VulkanContext();
 
-            void dispose();
-            bool initialize(HWND hwnd);
+        void dispose();
+        bool initialize(HWND hwnd);
 
-        private:
-            bool createInstance();
+    private:
+        bool createInstance();
 
-            VkPhysicalDevice selectDevice();
-            VkDevice createDevice(VkPhysicalDevice physicalDevice);
+        VkPhysicalDevice selectDevice();
+        VkDevice createDevice(const PhysicalDevice &physicalDevice);
 
-            bool isDeviceSuitable(VkPhysicalDevice device);
-            int findQueueFamily(VkPhysicalDevice device, VkQueueFlags flags) const;
-            int findPresentationQueue(VkPhysicalDevice device, WindowSurface &surface) const;
+        bool isDeviceSuitable(const PhysicalDevice &device);
+        int findQueueFamily(const PhysicalDevice &device, VkQueueFlags flags) const;
+        int findPresentationQueue(const PhysicalDevice &device, WindowSurface &surface) const;
 
-        private:
-            WindowSurface m_windowSurface;
-            VkInstance m_instance;
-            VkDevice m_device;
+    private:
+        std::vector<PhysicalDevice> m_physicalDevices;
 
-            VkQueue m_presentationQueue;
-            VkQueue m_graphicsQueue;
-        };
-    }
+        WindowSurface m_windowSurface;
+        VkInstance m_instance;
+        VkDevice m_device;
+
+        VkQueue m_presentationQueue;
+        VkQueue m_graphicsQueue;
+    };
 }
 
 ////////////////////////////////////////////////////////////////////////////

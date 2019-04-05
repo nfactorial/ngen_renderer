@@ -25,8 +25,8 @@
 ////////////////////////////////////////////////////////////////////////////
 
 namespace ngen {
-    namespace rendering {
-        const char* getVulkanResultString(VkResult result);
+    namespace vulkan {
+        const char* getResultString(VkResult result);
     }
 }
 
