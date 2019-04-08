@@ -14,13 +14,13 @@
 // limitations under the License.
 //
 
-#ifndef NGEN_VULKAN_CONTEXT
-#define NGEN_VULKAN_CONTEXT
+#ifndef NGEN_VULKAN_DEVICE
+#define NGEN_VULKAN_DEVICE
 
 ////////////////////////////////////////////////////////////////////////////
 
+#include <memory>
 #include <vector>
-#include "physical_device.h"
 #include "window_surface.h"
 
 
@@ -30,35 +30,32 @@ namespace ngen::vulkan {
     class PhysicalDevice;
     class WindowSurface;
 
-    class VulkanContext {
+    class Device {
     public:
-        VulkanContext();
-        ~VulkanContext();
+        Device();
+        ~Device();
 
-        void dispose();
-        bool initialize(HWND hwnd, const char *applicationName);
+        bool initialize(VkDevice handle, WindowSurface &surface, PhysicalDevice *physicalDevice);
 
-    private:
-        bool createInstance(const char *applicationName);
+        VkQueue getPresentationQueue() const;
+        VkQueue getGraphicsQueue() const;
 
-        PhysicalDevice* selectDevice();
-
-        bool isDeviceSuitable(const PhysicalDevice &device, WindowSurface &surface);
-
-        uint32_t enumeratePhysicalDevices();
-
-    private:
-        std::vector<PhysicalDevice> m_physicalDevices;
-
-        WindowSurface m_windowSurface;
-        VkInstance m_instance;
-        VkDevice m_device;
+    public:
+        VkDevice m_handle;
 
         VkQueue m_presentationQueue;
         VkQueue m_graphicsQueue;
     };
+
+    inline VkQueue Device::getPresentationQueue() const {
+        return m_presentationQueue;
+    }
+
+    inline VkQueue Device::getGraphicsQueue() const {
+        return m_graphicsQueue;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
-#endif //NGEN_VULKAN_CONTEXT
+#endif //NGEN_VULKAN_DEVICE

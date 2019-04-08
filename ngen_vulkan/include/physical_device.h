@@ -27,28 +27,28 @@
 ////////////////////////////////////////////////////////////////////////////
 
 namespace ngen::vulkan {
+    class Device;
+
     class PhysicalDevice {
     public:
         PhysicalDevice();
-        explicit PhysicalDevice(VkPhysicalDevice physicalDevice);
         ~PhysicalDevice();
 
-        static uint32_t enumerate(std::vector<PhysicalDevice> &result, VkInstance instance);
+        void initialize(VkPhysicalDevice handle);
 
-        operator VkPhysicalDevice() const;
+        int findQueueFamily(VkQueueFlags flags) const;
+        int findPresentationQueue(WindowSurface &surface) const;
+
+        bool createDevice(Device &device, WindowSurface &surface) const;
 
     private:
-        void extractQueueFamilies();
+        void enumerateQueueFamilies();
 
-    private:
+    public:
         std::vector<VkQueueFamilyProperties> m_queueFamilies;
 
         VkPhysicalDevice m_handle;
     };
-
-    inline PhysicalDevice::operator VkPhysicalDevice() const {
-        return m_handle;
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
