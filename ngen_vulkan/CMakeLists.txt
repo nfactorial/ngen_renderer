@@ -8,12 +8,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_OSX_ARCHITECTURES x86_64)
 
 set(SOURCE_FILES
+    source/device.cpp
     source/physical_device.cpp
     source/vulkan_error.cpp
     source/window_surface.cpp
     source/vulkan_context.cpp)
 
 set(INCLUDE_FILES
+    include/device.h
     include/physical_device.h
     include/vulkan_error.h
     include/window_surface.h

@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 namespace ngen::vulkan {
+    class PhysicalDevice;
     class WindowSurface;
 
     class VulkanContext {
@@ -35,17 +36,16 @@ namespace ngen::vulkan {
         ~VulkanContext();
 
         void dispose();
-        bool initialize(HWND hwnd);
+        bool initialize(HWND hwnd, const char *applicationName);
 
     private:
-        bool createInstance();
+        bool createInstance(const char *applicationName);
 
-        VkPhysicalDevice selectDevice();
-        VkDevice createDevice(const PhysicalDevice &physicalDevice);
+        PhysicalDevice* selectDevice();
 
-        bool isDeviceSuitable(const PhysicalDevice &device);
-        int findQueueFamily(const PhysicalDevice &device, VkQueueFlags flags) const;
-        int findPresentationQueue(const PhysicalDevice &device, WindowSurface &surface) const;
+        bool isDeviceSuitable(const PhysicalDevice &device, WindowSurface &surface);
+
+        uint32_t enumeratePhysicalDevices();
 
     private:
         std::vector<PhysicalDevice> m_physicalDevices;
