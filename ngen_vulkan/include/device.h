@@ -21,7 +21,7 @@
 
 #include <memory>
 #include <vector>
-#include "window_surface.h"
+#include <vulkan/vulkan.h>
 
 
 ////////////////////////////////////////////////////////////////////////////
