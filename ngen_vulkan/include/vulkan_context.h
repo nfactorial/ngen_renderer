@@ -22,6 +22,7 @@
 #include <vector>
 #include "physical_device.h"
 #include "window_surface.h"
+#include "device.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -41,7 +42,7 @@ namespace ngen::vulkan {
     private:
         bool createInstance(const char *applicationName);
 
-        PhysicalDevice* selectDevice();
+        PhysicalDevice* selectDevice(WindowSurface &surface);
 
         bool isDeviceSuitable(const PhysicalDevice &device, WindowSurface &surface);
 
@@ -49,13 +50,10 @@ namespace ngen::vulkan {
 
     private:
         std::vector<PhysicalDevice> m_physicalDevices;
-
         WindowSurface m_windowSurface;
-        VkInstance m_instance;
-        VkDevice m_device;
+        Device m_device;
 
-        VkQueue m_presentationQueue;
-        VkQueue m_graphicsQueue;
+        VkInstance m_instance;
     };
 }
 

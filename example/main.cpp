@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
             SDL_GetWindowWMInfo(window, &wmInfo);
 
             ngen::vulkan::VulkanContext vulkan;
-            vulkan.initialize(wmInfo.info.win.window);
+            vulkan.initialize(wmInfo.info.win.window, "nGen - Vulkan Test");
 
             printf("main entry point\n");
 

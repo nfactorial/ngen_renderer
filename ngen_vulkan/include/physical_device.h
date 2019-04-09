@@ -41,6 +41,8 @@ namespace ngen::vulkan {
 
         bool createDevice(Device &device, WindowSurface &surface) const;
 
+        VkPhysicalDevice getHandle() const;
+
     private:
         void enumerateQueueFamilies();
 
@@ -49,6 +51,12 @@ namespace ngen::vulkan {
 
         VkPhysicalDevice m_handle;
     };
+
+    //! \brief Obtains the current vulkan physical device handle associated with this object.
+    //! \returns The Vulkan physical device associated with the object.
+    inline VkPhysicalDevice PhysicalDevice::getHandle() const {
+        return m_handle;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////

@@ -35,7 +35,8 @@ namespace ngen::vulkan {
         Device();
         ~Device();
 
-        bool initialize(VkDevice handle, WindowSurface &surface, PhysicalDevice *physicalDevice);
+        bool create(PhysicalDevice &physicalDevice, WindowSurface &surface);
+        void dispose();
 
         VkQueue getPresentationQueue() const;
         VkQueue getGraphicsQueue() const;
