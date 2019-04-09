@@ -36,6 +36,8 @@ namespace ngen::vulkan {
 
         void initialize(VkPhysicalDevice handle);
 
+        bool hasExtension(const char *extensionName) const;
+
         int findQueueFamily(VkQueueFlags flags) const;
         int findPresentationQueue(WindowSurface &surface) const;
 
@@ -43,9 +45,11 @@ namespace ngen::vulkan {
 
     private:
         void enumerateQueueFamilies();
+        void enumerateExtensions();
 
     public:
         std::vector<VkQueueFamilyProperties> m_queueFamilies;
+        std::vector<VkExtensionProperties> m_extensions;
 
         VkPhysicalDevice m_handle;
     };

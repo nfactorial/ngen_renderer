@@ -137,6 +137,11 @@ namespace ngen::vulkan {
             return false;
         }
 
+        if (!physicalDevice.hasExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+            printf("Device did not support the required swap-chain extension.\n");
+            return false;
+        }
+
         return true;
     }
 
