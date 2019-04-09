@@ -21,10 +21,7 @@ namespace {
 
 namespace ngen::vulkan {
     VulkanContext::VulkanContext()
-    : m_instance(VK_NULL_HANDLE)
-    , m_device(VK_NULL_HANDLE)
-    , m_presentationQueue(VK_NULL_HANDLE)
-    , m_graphicsQueue(VK_NULL_HANDLE) {
+    : m_instance(VK_NULL_HANDLE) {
     }
 
     VulkanContext::~VulkanContext() {
@@ -34,14 +31,7 @@ namespace ngen::vulkan {
     //! \brief Releases all resources currently referenced by this object.
     void VulkanContext::dispose() {
         if (VK_NULL_HANDLE != m_instance) {
-            m_graphicsQueue = VK_NULL_HANDLE;
-            m_presentationQueue = VK_NULL_HANDLE;
-
-            if (m_device != VK_NULL_HANDLE) {
-                vkDestroyDevice(m_device, nullptr);
-                m_device = VK_NULL_HANDLE;
-            }
-
+            m_device.dispose();
             m_windowSurface.dispose(m_instance);
 
             vkDestroyInstance(m_instance, nullptr);
@@ -53,7 +43,7 @@ namespace ngen::vulkan {
     //! \param hwnd [in] - The handle of the applications main window.
     //! \returns True if the object initialized successfully otherwise false.
     bool VulkanContext::initialize(HWND hwnd, const char *applicationName) { // TODO: Should be platform agnostic
-        if (m_device != VK_NULL_HANDLE) {
+        if (m_instance != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;
         }
@@ -71,15 +61,12 @@ namespace ngen::vulkan {
             }
 
             if (m_windowSurface.initialize(m_instance, hwnd)) {
-                PhysicalDevice *physicalDevice = selectDevice();
-                if (physicalDevice) {
-                    m_device = physicalDevice->createDevice(m_windowSurface);
-                    if (VK_NULL_HANDLE != m_device) {
-                        return true;
-                    }
-                } else {
-                    printf("Unable to find suitable device for rendering.\n");
+                PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
+                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface)) {
+                    return true;
                 }
+
+                printf("Unable to find suitable device for rendering.\n");
             }
         }
 
@@ -117,12 +104,13 @@ namespace ngen::vulkan {
     }
 
     //! \brief Enumerates the available devices and selects one for use.
+    //! \param surface [in] - The window surface to be used for rendering.
     //! \returns The physical device that was selected for use by the application.
-    PhysicalDevice* VulkanContext::selectDevice() {
+    PhysicalDevice* VulkanContext::selectDevice(WindowSurface &surface) {
         enumeratePhysicalDevices();
 
         for (auto &device : m_physicalDevices) {
-            if (isDeviceSuitable(device)) {
+            if (isDeviceSuitable(device, surface)) {
                 printf("Selected device for rendering\n");
                 return &device;
             }
@@ -133,6 +121,7 @@ namespace ngen::vulkan {
 
     //! \brief Determines whether or not the specified physical device is suitable for the application to use.
     //! \param physicalDevice [in] - The physical device we are checking for compatability.
+    //! \param surface [in] - The window surface to be used for rendering.
     //! \returns True if the device is suitable otherwise false.
     bool VulkanContext::isDeviceSuitable(const PhysicalDevice &physicalDevice, WindowSurface &surface) {
         const int graphicsQueue = physicalDevice.findQueueFamily(VK_QUEUE_GRAPHICS_BIT);

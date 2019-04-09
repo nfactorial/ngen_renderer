@@ -19,37 +19,6 @@ namespace ngen::vulkan {
         enumerateQueueFamilies();
     }
 
-    //! \brief Attempts to create an instance of the specified physical device.
-    //! \param physicalDevice [in] - The physical device we are attempting to create an instance of.
-    //! \returns The created device or VK_NULL_HANDLE if one could not be created.
-    bool PhysicalDevice::createDevice(Device &device, WindowSurface &surface) const {
-        float queuePriority = 1.0f;
-
-        VkDeviceQueueCreateInfo queueCreateInfo = {};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = findQueueFamily(VK_QUEUE_GRAPHICS_BIT);
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-
-        VkPhysicalDeviceFeatures deviceFeatures = {};
-
-        VkDeviceCreateInfo createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.pQueueCreateInfos = &queueCreateInfo;
-        createInfo.queueCreateInfoCount = 1;
-        createInfo.pEnabledFeatures = &deviceFeatures;
-        createInfo.enabledExtensionCount = 0;
-        createInfo.enabledLayerCount = 0;
-
-        // TODO: Device should be passed in, for us to fill out
-        VkDevice deviceHandle;
-        if (vkCreateDevice(m_handle, &createInfo, nullptr, &deviceHandle) == VK_SUCCESS) {
-            return device.initialize(deviceHandle, windowSurface, this);
-        }
-
-        return false;
-    }
-
     //! \brief Extracts the list of queue families available for this physical device.
     void PhysicalDevice::enumerateQueueFamilies() {
         uint32_t queueFamilyCount = 0;
