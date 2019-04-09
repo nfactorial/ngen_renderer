@@ -35,13 +35,20 @@ namespace ngen::vulkan {
     //! \brief Destroys all resources belonging to this object.
     void Device::dispose() {
         // TODO: Delete handle
+        if (VK_NULL_HANDLE != m_handle) {
+            vkDestroyDevice(m_handle, nullptr);
+
+            m_graphicsQueue = VK_NULL_HANDLE;
+            m_presentationQueue = VK_NULL_HANDLE;
+            m_handle = VK_NULL_HANDLE;
+        }
     }
 
     //! \brief Attempts to create an instance of the specified physical device.
     //! \param physicalDevice [in] - The physical device we are to create an instance of.
     //! \param surface [in] - The window surface to be used for rendering.
     //! \returns The created device or VK_NULL_HANDLE if one could not be created.
-    bool Device::create(PhysicalDevice &physicalDevice, WindowSurface &surface) {
+    bool Device::create(PhysicalDevice &physicalDevice, WindowSurface &surface, size_t extensionCount, const char **requiredExtensions) {
         float queuePriority = 1.0f;
 
         VkDeviceQueueCreateInfo queueCreateInfo = {};
@@ -57,7 +64,8 @@ namespace ngen::vulkan {
         createInfo.pQueueCreateInfos = &queueCreateInfo;
         createInfo.queueCreateInfoCount = 1;
         createInfo.pEnabledFeatures = &deviceFeatures;
-        createInfo.enabledExtensionCount = 0;
+        createInfo.ppEnabledExtensionNames = requiredExtensions;
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensionCount);
         createInfo.enabledLayerCount = 0;
 
         // TODO: Device should be passed in, for us to fill out

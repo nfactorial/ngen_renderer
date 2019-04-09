@@ -1,4 +1,5 @@
 
+#include <string>
 #include "physical_device.h"
 #include "window_surface.h"
 #include "device.h"
@@ -17,6 +18,20 @@ namespace ngen::vulkan {
         m_handle = handle;
 
         enumerateQueueFamilies();
+        enumerateExtensions();
+    }
+
+    //! \brief Determines whether or not the physical device supports the specified extension.
+    //! \param extensionName [in] - The name of the Vulkan extension to be checked.
+    //! \returns True if the specified extension is supported by the physical device otherwise false.
+    bool PhysicalDevice::hasExtension(const char *extensionName) const {
+        for (const auto &extension : m_extensions) {
+            if (0 == strcmp(extension.extensionName, extensionName)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     //! \brief Extracts the list of queue families available for this physical device.
@@ -26,9 +41,21 @@ namespace ngen::vulkan {
 
         m_queueFamilies.clear();
 
-        if (queueFamilyCount != 0) {
+        if (queueFamilyCount) {
             m_queueFamilies.resize(queueFamilyCount);
             vkGetPhysicalDeviceQueueFamilyProperties(m_handle, &queueFamilyCount, m_queueFamilies.data());
+        }
+    }
+
+    //! \brief Retrieves a list of supported extensions for this device.
+    void PhysicalDevice::enumerateExtensions() {
+        uint32_t extensionCount = 0;
+        vkEnumerateDeviceExtensionProperties(m_handle, nullptr, &extensionCount, nullptr);
+
+        m_extensions.clear();
+        if (extensionCount) {
+            m_extensions.resize(extensionCount);
+            vkEnumerateDeviceExtensionProperties(m_handle, nullptr, &extensionCount, m_extensions.data());
         }
     }
 
