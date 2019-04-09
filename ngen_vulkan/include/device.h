@@ -48,10 +48,14 @@ namespace ngen::vulkan {
         VkQueue m_graphicsQueue;
     };
 
+    //! \brief Retrieves the queue suitable for presentation.
+    //! \returns The presentation queue to be used for the device.
     inline VkQueue Device::getPresentationQueue() const {
         return m_presentationQueue;
     }
 
+    //! \brief Retrieves the queue suitable for graphics rendering.
+    //! \returns The graphics queue to be used for the device.
     inline VkQueue Device::getGraphicsQueue() const {
         return m_graphicsQueue;
     }
