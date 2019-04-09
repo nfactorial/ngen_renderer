@@ -39,8 +39,6 @@ namespace ngen::vulkan {
         int findQueueFamily(VkQueueFlags flags) const;
         int findPresentationQueue(WindowSurface &surface) const;
 
-        bool createDevice(Device &device, WindowSurface &surface) const;
-
         VkPhysicalDevice getHandle() const;
 
     private:
