@@ -9,6 +9,7 @@ set(CMAKE_OSX_ARCHITECTURES x86_64)
 
 set(SOURCE_FILES
     source/device.cpp
+    source/swap_chain.cpp
     source/physical_device.cpp
     source/vulkan_error.cpp
     source/window_surface.cpp
@@ -16,6 +17,7 @@ set(SOURCE_FILES
 
 set(INCLUDE_FILES
     include/device.h
+    include/swap_chain.h
     include/physical_device.h
     include/vulkan_error.h
     include/window_surface.h
