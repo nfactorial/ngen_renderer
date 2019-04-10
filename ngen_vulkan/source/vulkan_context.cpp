@@ -17,6 +17,11 @@ namespace {
         VK_KHR_SURFACE_EXTENSION_NAME,
         "VK_KHR_win32_surface"
     };
+
+    const size_t kDefaultDeviceExtensionCount = 1;
+    const char *kDefaultDeviceExtensions[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
 }
 
 namespace ngen::vulkan {
@@ -62,7 +67,7 @@ namespace ngen::vulkan {
 
             if (m_windowSurface.initialize(m_instance, hwnd)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
-                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface)) {
+                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, kDefaultDeviceExtensionCount, kDefaultDeviceExtensions)) {
                     return true;
                 }
 

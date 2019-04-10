@@ -19,22 +19,36 @@
 
 ////////////////////////////////////////////////////////////////////////////
 
+#include <vector>
 #include <vulkan/vulkan.h>
 
 ////////////////////////////////////////////////////////////////////////////
 
 namespace ngen::vulkan {
+    class PhysicalDevice;
+    class WindowSurface;
+
     class SwapChain {
     public:
-        SwaoChain();
-        ~SwaoChain();
+        SwapChain();
+        ~SwapChain();
 
         void dispose();
+
+        void initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
+
+        bool isUsable() const;
+
+        VkPresentModeKHR choosePresentMode() const;
+
+    private:
+        void enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
+        void enumeratePresentModes(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
 
     private:
         std::vector<VkPresentModeKHR> m_presentModes;
         std::vector<VkSurfaceFormatKHR> m_formats;
-        VkSurfaceCapabilitiesKHR m_capabilties;
+        VkSurfaceCapabilitiesKHR m_capabilities;
     };
 }
 
