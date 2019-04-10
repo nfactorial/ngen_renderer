@@ -29,7 +29,7 @@ namespace ngen::vulkan {
     }
 
     Device::~Device() {
-
+        dispose();
     }
 
     //! \brief Destroys all resources belonging to this object.
