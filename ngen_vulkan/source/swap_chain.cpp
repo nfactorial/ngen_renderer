@@ -45,6 +45,38 @@ namespace ngen::vulkan {
         return !m_formats.empty() && !m_presentModes.empty();
     }
 
+    //! \brief Determines the swap extents to be used with the swap chain.
+    //! \param width [in] - The width of the target surface (in pixels).
+    //! \param height [in] - The height of the target surface (in pixels).
+    //! \returns The swap extents to be used with the swap chain.
+    VkExtent2D SwapChain::chooseExtent(uint32_t width, uint32_t height) const {
+        if (m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            return m_capabilities.currentExtent;
+        }
+
+        VkExtent2D extent = {width, height};
+
+        extent.width = std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, extent.width));
+        extent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, extent.height));
+
+        return extent;
+    }
+
+    //! \brief Selects a surface format suitable for use by the renderer.
+    VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat() const {
+        if (m_formats.size() == 1 && m_formats[0].format == VK_FORMAT_UNDEFINED) {
+            return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+        }
+
+        for (const auto &availableFormat : m_formats) {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                return availableFormat;
+            }
+        }
+
+        return m_formats[0];
+    }
+
     //! \brief Determines which presentation mode should be used when rendering.
     //! \returns The presentation mode the application should use when presenting the display.
     VkPresentModeKHR SwapChain::choosePresentMode() const {
