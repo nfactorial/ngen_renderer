@@ -39,7 +39,9 @@ namespace ngen::vulkan {
 
         bool isUsable() const;
 
+        VkSurfaceFormatKHR chooseSurfaceFormat() const;
         VkPresentModeKHR choosePresentMode() const;
+        VkExtent2D chooseExtent(uint32_t width, uint32_t height) const;
 
     private:
         void enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
