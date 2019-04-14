@@ -2,6 +2,9 @@
 #include "vulkan_error.h"
 
 namespace ngen::vulkan {
+    //! \brief Converts a Vulkan error code to a user friendly string.
+    //! \param result [in] - The Vulkan error code to be converted to a string.
+    //! \return A string representation of the supplied Vulkan error code.
     const char* getResultString(VkResult result)
     {
         switch (result)

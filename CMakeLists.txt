@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 enable_testing()
 
-MESSAGE(STATUS "SDL2DIR " $ENV{SDL2DIR})
-MESSAGE(STATUS "SDL2_PATH " $ENV{SDL2_PATH})
+MESSAGE(STATUS "SDL2DIR: $ENV{SDL2DIR}")
+MESSAGE(STATUS "SDL2_PATH: $ENV{SDL2_PATH}")
+MESSAGE(STATUS "VULKAN_SDK: $ENV{VULKAN_SDK}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS ON)
@@ -23,7 +24,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_modules")
 
 find_package(Threads REQUIRED)
 find_package(Vulkan REQUIRED)
-find_package(SDL2 REQUIRED)
 
 IF (NOT Vulkan_FOUND)
     message(FATAL_ERROR "Could not find Vulkan library")

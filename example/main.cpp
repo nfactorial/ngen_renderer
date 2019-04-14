@@ -5,8 +5,12 @@
 #include <vulkan_context.h>
 #include <SDL_syswm.h>
 
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+namespace {
+    const int SCREEN_WIDTH = 640;
+    const int SCREEN_HEIGHT = 480;
+
+    const char* kApplicationTitle = "nGen - Vulkan Test";
+}
 
 void processEvent(const SDL_Event &event, bool &running) {
     switch (event.type) {
@@ -30,23 +34,30 @@ int main(int argc, char **argv) {
         printf( "Failed to initialize SDL - Error: %s\n", SDL_GetError());
     } else {
         SDL_Window *window = SDL_CreateWindow(
-                "nGen Vulkan Example"
+                  kApplicationTitle
                 , SDL_WINDOWPOS_UNDEFINED
                 , SDL_WINDOWPOS_UNDEFINED
                 , SCREEN_WIDTH
                 , SCREEN_HEIGHT
-                , SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN
+                , SDL_WINDOW_SHOWN
         );
 
         if (!window) {
             printf("Failed to create window for testing.\n");
+            printf("%s\n", SDL_GetError());
         } else {
             SDL_SysWMinfo wmInfo;
             SDL_VERSION(&wmInfo.version);
             SDL_GetWindowWMInfo(window, &wmInfo);
 
             ngen::vulkan::VulkanContext vulkan;
-            vulkan.initialize(wmInfo.info.win.window, "nGen - Vulkan Test");
+#if defined(__APPLE__)
+            vulkan.initialize(wmInfo.info.cocoa.window, kApplicationTitle);
+#elif defined(_WIN32)
+            vulkan.initialize(wmInfo.info.win.window, kApplicationTitle);
+#else
+    #error Unknown platform
+#endif
 
             printf("main entry point\n");
 

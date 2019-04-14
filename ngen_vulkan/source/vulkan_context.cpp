@@ -1,8 +1,3 @@
-//
-// Created by nfact on 02/04/2019.
-//
-
-#include <vulkan/vulkan.h>
 #include <vector>
 #include <cstdio>
 #include "vulkan_context.h"
@@ -11,17 +6,6 @@
 namespace {
     const char *kEngineName = "nGen";
     const uint32_t kEngineVersion = VK_MAKE_VERSION(1, 0, 0);
-
-    const uint32_t kVulkanExtensionCount = 2;
-    const char *kVulkanExtensions[] = {
-        VK_KHR_SURFACE_EXTENSION_NAME,
-        "VK_KHR_win32_surface"
-    };
-
-    const size_t kDefaultDeviceExtensionCount = 1;
-    const char *kDefaultDeviceExtensions[] = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    };
 }
 
 namespace ngen::vulkan {
@@ -45,9 +29,9 @@ namespace ngen::vulkan {
     }
 
     //! \brief Prepares the object for use by the application.
-    //! \param hwnd [in] - The handle of the applications main window.
+    //! \param platformWindow [in] - The handle of the applications main window.
     //! \returns True if the object initialized successfully otherwise false.
-    bool VulkanContext::initialize(HWND hwnd, const char *applicationName) { // TODO: Should be platform agnostic
+    bool VulkanContext::initialize(PlatformWindow platformWindow, const char *applicationName) { // TODO: Should be platform agnostic
         if (m_instance != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;
@@ -65,9 +49,9 @@ namespace ngen::vulkan {
                 printf("\t%s\n", extension.extensionName);
             }
 
-            if (m_windowSurface.initialize(m_instance, hwnd)) {
+            if (m_windowSurface.initialize(m_instance, platformWindow)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
-                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, kDefaultDeviceExtensionCount, kDefaultDeviceExtensions)) {
+                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultVulkanExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
                     return true;
                 }
 
@@ -95,8 +79,8 @@ namespace ngen::vulkan {
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
-        createInfo.enabledExtensionCount = kVulkanExtensionCount;
-        createInfo.ppEnabledExtensionNames = kVulkanExtensions;
+        createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultDeviceExtensionCount;
+        createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultkVulkanExtensions;
 
         VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
         if (result != VK_SUCCESS) {

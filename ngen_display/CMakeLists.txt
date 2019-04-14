@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION 3.1)
 
 project(ngen_display)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_EXTENSIONS ON)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES x86_64)
-
 set(SOURCE_FILES
         source/display_port.cpp)
 
