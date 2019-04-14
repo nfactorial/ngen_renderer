@@ -30,8 +30,11 @@ namespace ngen::vulkan {
 
     //! \brief Prepares the object for use by the application.
     //! \param platformWindow [in] - The handle of the applications main window.
+    //! \param width [in] - The width of the window (in pixels).
+    //! \param height [in] - The height of the window (in pixels).
+    //! \param applicationName [in] - The name of the application.
     //! \returns True if the object initialized successfully otherwise false.
-    bool VulkanContext::initialize(PlatformWindow platformWindow, const char *applicationName) { // TODO: Should be platform agnostic
+    bool VulkanContext::initialize(PlatformWindow platformWindow, uint32_t width, uint32_t height, const char *applicationName) {
         if (m_instance != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;

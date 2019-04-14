@@ -41,6 +41,8 @@ namespace ngen::vulkan {
         VkQueue getPresentationQueue() const;
         VkQueue getGraphicsQueue() const;
 
+        operator VkDevice() const; // NOLINT
+
     public:
         VkDevice m_handle;
 
@@ -58,6 +60,11 @@ namespace ngen::vulkan {
     //! \returns The graphics queue to be used for the device.
     inline VkQueue Device::getGraphicsQueue() const {
         return m_graphicsQueue;
+    }
+
+    //! \brief Operator overload to convert a Device object to a raw VkDevice.
+    inline Device::operator VkDevice() const {
+        return m_handle;
     }
 }
 
