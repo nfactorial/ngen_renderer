@@ -27,7 +27,6 @@ namespace ngen::vulkan {
         SurfaceCreateInfo createInfo;
 
         ngen::vulkan::platform::initializeSurfaceCreateInfo(createInfo, platformWindow);
-        ngen::vulkan::platform::createSurface(instance, createInfo, nullptr, &m_surface);
 
         VkResult result = ngen::vulkan::platform::createSurface(instance, createInfo, nullptr, &m_surface);
         if (result != VK_SUCCESS) {

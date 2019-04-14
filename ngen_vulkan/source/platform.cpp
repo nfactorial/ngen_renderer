@@ -4,7 +4,7 @@
 namespace ngen::vulkan::platform {
 #if defined(__APPLE__)
     const uint32_t kDefaultVulkanExtensionCount = 1;
-    const char *kDefaultkVulkanExtensions[] = {
+    const char *kDefaultVulkanExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
     };
 
@@ -14,9 +14,9 @@ namespace ngen::vulkan::platform {
     };
 #elif defined(_WIN32)
     const uint32_t kDefaultVulkanExtensionCount = 2;
-    const char *kDefaultkVulkanExtensions[] = {
+    const char *kDefaultVulkanExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
-        "VK_KHR_win32_surface"
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
     };
 
     const uint32_t kDefaultDeviceExtensionCount = 1;

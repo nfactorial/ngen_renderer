@@ -13,7 +13,7 @@ namespace ngen::vulkan {
 
     namespace platform {
         extern const uint32_t kDefaultVulkanExtensionCount;
-        extern const char* kDefaultkVulkanExtensions[];
+        extern const char* kDefaultVulkanExtensions[];
         extern const uint32_t kDefaultDeviceExtensionCount;
         extern const char *kDefaultDeviceExtensions[];
 

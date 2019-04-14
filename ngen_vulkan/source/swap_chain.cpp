@@ -18,7 +18,7 @@ namespace ngen::vulkan {
     //! \param physicalDevice [in] - The PhysicalDevice we are enumerating surface formats for.
     //! \param surface [in] - The surface the device will be rendering to.
     void SwapChain::initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface) {
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.getHandle(), surface.getSurface(), &m_capabilities);
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &m_capabilities);
 
         enumerateSurfaceFormats(physicalDevice, surface);
         enumeratePresentModes(physicalDevice, surface);
@@ -91,12 +91,12 @@ namespace ngen::vulkan {
     //! \param surface [in] - The surface the device will be rendering to.
     void SwapChain::enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface) {
         uint32_t formatCount;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice.getHandle(), surface.getSurface(), &formatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
 
         m_formats.clear();
         if (formatCount) {
             m_formats.resize(formatCount);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice.getHandle(), surface.getSurface(), &formatCount, m_formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, m_formats.data());
         }
     }
 
@@ -105,12 +105,12 @@ namespace ngen::vulkan {
     //! \param surface [in] - The surface the device will be rendering to.
     void SwapChain::enumeratePresentModes(const PhysicalDevice &physicalDevice, const WindowSurface &surface) {
         uint32_t presentModeCount;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice.getHandle(), surface.getSurface(), &presentModeCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
 
         m_presentModes.clear();
         if (presentModeCount) {
             m_presentModes.resize(presentModeCount);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice.getHandle(), surface.getSurface(), &presentModeCount, m_presentModes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, m_presentModes.data());
         }
     }
 }

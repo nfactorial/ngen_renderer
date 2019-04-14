@@ -36,11 +36,17 @@ namespace ngen::vulkan {
 
         VkSurfaceKHR getSurface() const;
 
+        operator VkSurfaceKHR() const; // NOLINT
+
     private:
 
     private:
         VkSurfaceKHR m_surface;
     };
+
+    inline WindowSurface::operator VkSurfaceKHR() const {
+        return m_surface;
+    }
 
     inline VkSurfaceKHR WindowSurface::getSurface() const {
         return m_surface;
