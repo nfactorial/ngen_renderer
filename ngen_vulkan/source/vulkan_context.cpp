@@ -51,7 +51,7 @@ namespace ngen::vulkan {
 
             if (m_windowSurface.initialize(m_instance, platformWindow)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
-                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultVulkanExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
+                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
                     return true;
                 }
 
@@ -79,7 +79,7 @@ namespace ngen::vulkan {
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
-        createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultDeviceExtensionCount;
+        createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultVulkanExtensionCount;
         createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultVulkanExtensions;
 
         VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
