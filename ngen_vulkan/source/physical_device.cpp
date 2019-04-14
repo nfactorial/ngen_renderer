@@ -84,7 +84,7 @@ namespace ngen::vulkan {
         for (const auto &queueFamily : m_queueFamilies) {
             VkBool32 presentSupport = false;
 
-            vkGetPhysicalDeviceSurfaceSupportKHR(m_handle, index, surface.getSurface(), &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(m_handle, index, surface, &presentSupport);
             if (queueFamily.queueCount > 0 && presentSupport) {
                 return index;
             }

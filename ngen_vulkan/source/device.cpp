@@ -51,7 +51,7 @@ namespace ngen::vulkan {
         createInfo.enabledLayerCount = 0;
 
         // TODO: Device should be passed in, for us to fill out
-        if (vkCreateDevice(physicalDevice.getHandle(), &createInfo, nullptr, &m_handle) == VK_SUCCESS) {
+        if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &m_handle) == VK_SUCCESS) {
             vkGetDeviceQueue(m_handle, physicalDevice.findQueueFamily(VK_QUEUE_GRAPHICS_BIT), 0, &m_graphicsQueue);
             vkGetDeviceQueue(m_handle, physicalDevice.findPresentationQueue(surface), 0, &m_presentationQueue);
             return true;

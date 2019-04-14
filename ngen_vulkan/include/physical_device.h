@@ -43,6 +43,8 @@ namespace ngen::vulkan {
 
         VkPhysicalDevice getHandle() const;
 
+        operator VkPhysicalDevice() const; // NOLINT
+
     private:
         void enumerateQueueFamilies();
         void enumerateExtensions();
@@ -57,6 +59,10 @@ namespace ngen::vulkan {
     //! \brief Obtains the current vulkan physical device handle associated with this object.
     //! \returns The Vulkan physical device associated with the object.
     inline VkPhysicalDevice PhysicalDevice::getHandle() const {
+        return m_handle;
+    }
+
+    inline PhysicalDevice::operator VkPhysicalDevice() const {
         return m_handle;
     }
 }

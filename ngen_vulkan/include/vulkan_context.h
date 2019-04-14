@@ -39,6 +39,8 @@ namespace ngen::vulkan {
         void dispose();
         bool initialize(PlatformWindow platformWindow, const char *applicationName);
 
+        operator VkInstance() const; // NOLINT
+
     private:
         bool createInstance(const char *applicationName);
 
@@ -55,6 +57,10 @@ namespace ngen::vulkan {
 
         VkInstance m_instance;
     };
+
+    inline VulkanContext::operator VkInstance() const {
+        return m_instance;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////

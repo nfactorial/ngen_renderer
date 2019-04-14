@@ -80,7 +80,7 @@ namespace ngen::vulkan {
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
         createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultDeviceExtensionCount;
-        createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultkVulkanExtensions;
+        createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultVulkanExtensions;
 
         VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
         if (result != VK_SUCCESS) {
