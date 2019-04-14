@@ -14,7 +14,7 @@ namespace ngen::vulkan::platform {
     };
 #elif defined(_WIN32)
     const uint32_t kDefaultVulkanExtensionCount = 2;
-    const char *kDefaultVulkanExtensions[] = {
+    const char *kDefaultkVulkanExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
         "VK_KHR_win32_surface"
     };
