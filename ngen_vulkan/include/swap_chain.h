@@ -28,6 +28,7 @@
 namespace ngen::vulkan {
     class PhysicalDevice;
     class WindowSurface;
+    class Device;
 
     class SwapChain {
     public:
@@ -37,7 +38,7 @@ namespace ngen::vulkan {
         void dispose();
 
         void initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
-        bool create();
+        bool create(Device &device, WindowSurface &surface, uint32_t width, uint32_t height);
 
         bool isUsable() const;
 
@@ -53,6 +54,9 @@ namespace ngen::vulkan {
         std::vector<VkPresentModeKHR> m_presentModes;
         std::vector<VkSurfaceFormatKHR> m_formats;
         VkSurfaceCapabilitiesKHR m_capabilities;
+
+        VkSwapchainKHR m_handle;
+        VkDevice m_device;
     };
 }
 

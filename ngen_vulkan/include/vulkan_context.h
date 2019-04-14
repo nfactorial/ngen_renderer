@@ -37,7 +37,7 @@ namespace ngen::vulkan {
         ~VulkanContext();
 
         void dispose();
-        bool initialize(PlatformWindow platformWindow, const char *applicationName);
+        bool initialize(PlatformWindow platformWindow, uint32_t width, uint32_t height, const char *applicationName);
 
         operator VkInstance() const; // NOLINT
 

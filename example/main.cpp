@@ -46,6 +46,10 @@ int main(int argc, char **argv) {
             printf("Failed to create window for testing.\n");
             printf("%s\n", SDL_GetError());
         } else {
+            int width, height;
+
+            SDL_GetWindowSize(window, &width, &height);
+
             SDL_SysWMinfo wmInfo;
             SDL_VERSION(&wmInfo.version);
             SDL_GetWindowWMInfo(window, &wmInfo);
@@ -54,7 +58,7 @@ int main(int argc, char **argv) {
 #if defined(__APPLE__)
             vulkan.initialize(wmInfo.info.cocoa.window, kApplicationTitle);
 #elif defined(_WIN32)
-            vulkan.initialize(wmInfo.info.win.window, kApplicationTitle);
+            vulkan.initialize(wmInfo.info.win.window, static_cast<uint32_t>(width), static_cast<uint32_t>(height), kApplicationTitle);
 #else
     #error Unknown platform
 #endif

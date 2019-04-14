@@ -62,6 +62,7 @@ namespace ngen::vulkan {
         return m_handle;
     }
 
+    //! \brief Operator overload to automatically convert the PhysicalDevice class to a VkPhysicalDevice object.
     inline PhysicalDevice::operator VkPhysicalDevice() const {
         return m_handle;
     }

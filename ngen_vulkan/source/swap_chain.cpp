@@ -1,9 +1,13 @@
 
 #include "swap_chain.h"
 #include "physical_device.h"
+#include "device.h"
+#include "vulkan_error.h"
 
 namespace ngen::vulkan {
-    SwapChain::SwapChain() {
+    SwapChain::SwapChain()
+    : m_handle(VK_NULL_HANDLE)
+    , m_device(VK_NULL_HANDLE) {
     }
 
     SwapChain::~SwapChain() {
@@ -11,6 +15,11 @@ namespace ngen::vulkan {
     }
 
     void SwapChain::dispose() {
+        if (VK_NULL_HANDLE != m_handle) {
+            vkDestroySwapchainKHR(m_device, m_handle, nullptr);
+            m_handle = VK_NULL_HANDLE;
+            m_device = VK_NULL_HANDLE;
+        }
 
     }
 
@@ -25,13 +34,52 @@ namespace ngen::vulkan {
     }
 
     //! \brief Creates a swap chain suitable for use with the application
+    //! \param device [in] - The device that will be used for rendering.
+    //! \param surface [in] - The WindowSurface we will be presenting to.
+    //! \param width [in] - The width of the display (in pixels).
+    //! \param height [in] - The height of the display (in pixels).
     //! \returns True if the swap chain created successfully otherwise false.
-    bool SwapChain::create() {
+    bool SwapChain::create(Device &device, WindowSurface &surface, uint32_t width, uint32_t height) {
         VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat();
-        VkPresentModeKHR presentMode = choosePresentMode();
-        // VkExtent2D extent = chooseExtent(width, height);
 
-        return false;   // TODO
+        uint32_t imageCount = m_capabilities.minImageCount + 1;
+        if (m_capabilities.maxImageCount > 0 && imageCount > m_capabilities.maxImageCount) {
+            imageCount = m_capabilities.maxImageCount;
+        }
+
+        VkSwapchainCreateInfoKHR createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface = surface;
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = surfaceFormat.format;
+        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageExtent = chooseExtent(width, height);
+        createInfo.imageArrayLayers = 1;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        createInfo.preTransform = m_capabilities.currentTransform;
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        createInfo.presentMode = choosePresentMode();
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+        if (device.getGraphicsQueue() == device.getPresentationQueue()) {
+            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            createInfo.queueFamilyIndexCount = 0;
+            createInfo.pQueueFamilyIndices = nullptr;
+        } else {
+            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+            createInfo.queueFamilyIndexCount = 2;
+            //createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        }
+
+        VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_handle);
+        if (result != VK_SUCCESS) {
+            printf("Failed to create SwapChain: %s\n", getResultString(result));
+            return false;
+        }
+
+        m_device = device;
+        return true;
     }
 
     //! \brief Determines whether or not the SwapChain object is suitable for rendering.
