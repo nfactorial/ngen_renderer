@@ -21,7 +21,7 @@
 
 #include <memory>
 #include <vector>
-#include <vulkan/vulkan.h>
+#include "platform.h"
 
 
 ////////////////////////////////////////////////////////////////////////////

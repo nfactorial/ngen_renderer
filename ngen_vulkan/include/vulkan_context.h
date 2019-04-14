@@ -37,7 +37,7 @@ namespace ngen::vulkan {
         ~VulkanContext();
 
         void dispose();
-        bool initialize(HWND hwnd, const char *applicationName);
+        bool initialize(PlatformWindow platformWindow, const char *applicationName);
 
     private:
         bool createInstance(const char *applicationName);

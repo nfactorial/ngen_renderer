@@ -19,8 +19,7 @@
 
 ////////////////////////////////////////////////////////////////////////////
 
-#include <windef.h>
-#include <vulkan/vulkan.h>
+#include "platform.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -33,7 +32,7 @@ namespace ngen::vulkan {
         ~WindowSurface();
 
         void dispose(VkInstance instance);
-        bool initialize(VkInstance instance, HWND hwnd);
+        bool initialize(VkInstance instance, PlatformWindow platformWindow);
 
         VkSurfaceKHR getSurface() const;
 

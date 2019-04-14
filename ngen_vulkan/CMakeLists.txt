@@ -2,12 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 
 project(ngen_vulkan)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENSIONS ON)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES x86_64)
-
 set(SOURCE_FILES
+    source/platform.cpp
     source/device.cpp
     source/swap_chain.cpp
     source/physical_device.cpp
@@ -16,6 +12,7 @@ set(SOURCE_FILES
     source/vulkan_context.cpp)
 
 set(INCLUDE_FILES
+    include/platform.h
     include/device.h
     include/swap_chain.h
     include/physical_device.h
