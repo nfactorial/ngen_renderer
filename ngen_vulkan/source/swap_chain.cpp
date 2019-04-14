@@ -23,13 +23,17 @@ namespace ngen::vulkan {
         enumerateSurfaceFormats(physicalDevice, surface);
         enumeratePresentModes(physicalDevice, surface);
     }
-/*
+
+    //! \brief Creates a swap chain suitable for use with the application
+    //! \returns True if the swap chain created successfully otherwise false.
     bool SwapChain::create() {
         VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat();
         VkPresentModeKHR presentMode = choosePresentMode();
-        VkExtent2D extent = chooseExtent(width, height);
+        // VkExtent2D extent = chooseExtent(width, height);
+
+        return false;   // TODO
     }
-*/
+
     //! \brief Determines whether or not the SwapChain object is suitable for rendering.
     //! \returns True if the swap chain is usable otherwise false.
     bool SwapChain::isUsable() const {
