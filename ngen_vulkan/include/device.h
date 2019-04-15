@@ -22,6 +22,7 @@
 #include <memory>
 #include <vector>
 #include "platform.h"
+#include "swap_chain.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -44,6 +45,7 @@ namespace ngen::vulkan {
         operator VkDevice() const; // NOLINT
 
     public:
+        SwapChain m_swapChain;
         VkDevice m_handle;
 
         VkQueue m_presentationQueue;

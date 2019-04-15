@@ -22,6 +22,7 @@
 #include <vector>
 #include "physical_device.h"
 #include "window_surface.h"
+#include "swap_chain.h"
 #include "device.h"
 
 
