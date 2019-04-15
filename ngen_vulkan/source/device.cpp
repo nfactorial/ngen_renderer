@@ -16,7 +16,8 @@ namespace ngen::vulkan {
 
     //! \brief Destroys all resources belonging to this object.
     void Device::dispose() {
-        // TODO: Delete handle
+        m_swapChain.dispose();
+
         if (VK_NULL_HANDLE != m_handle) {
             vkDestroyDevice(m_handle, nullptr);
 
@@ -54,6 +55,9 @@ namespace ngen::vulkan {
         if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &m_handle) == VK_SUCCESS) {
             vkGetDeviceQueue(m_handle, physicalDevice.findQueueFamily(VK_QUEUE_GRAPHICS_BIT), 0, &m_graphicsQueue);
             vkGetDeviceQueue(m_handle, physicalDevice.findPresentationQueue(surface), 0, &m_presentationQueue);
+
+            m_swapChain.initialize(physicalDevice, surface);
+
             return true;
         }
 

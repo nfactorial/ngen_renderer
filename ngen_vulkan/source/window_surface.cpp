@@ -5,17 +5,25 @@
 
 namespace ngen::vulkan {
     WindowSurface::WindowSurface()
-    : m_surface(VK_NULL_HANDLE) {
+    : m_surface(VK_NULL_HANDLE)
+    , m_instance(VK_NULL_HANDLE)
+    , m_height(0)
+    , m_width(0) {
     }
 
     WindowSurface::~WindowSurface() {
+        dispose();
     }
 
     //! \brief Releases all resources currently referenced by this object.
-    void WindowSurface::dispose(VkInstance instance) {
+    void WindowSurface::dispose() {
         if (m_surface != VK_NULL_HANDLE) {
-            vkDestroySurfaceKHR(instance, m_surface, nullptr);
+            m_width = 0;
+            m_height = 0;
+
+            vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
             m_surface = VK_NULL_HANDLE;
+            m_instance = VK_NULL_HANDLE;
         }
     }
 
@@ -23,7 +31,7 @@ namespace ngen::vulkan {
     //! \param context [in] - The VulkanContext to be used.
     //! \param hwnd [in] - The handle to the system window used for presentation.
     //! \returns True if the object initialized successfully otherwise false.
-    bool WindowSurface::initialize(VkInstance instance, PlatformWindow platformWindow) {
+    bool WindowSurface::initialize(VkInstance instance, PlatformWindow platformWindow, uint32_t width, uint32_t height) {
         SurfaceCreateInfo createInfo;
 
         ngen::vulkan::platform::initializeSurfaceCreateInfo(createInfo, platformWindow);
@@ -33,6 +41,10 @@ namespace ngen::vulkan {
             printf("Failed to create window surface: %s\n", getResultString(result));
             return false;
         }
+
+        m_width = width;
+        m_height = height;
+        m_instance = instance;
 
         printf("Created window surface\n");
         return true;

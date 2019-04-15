@@ -21,7 +21,7 @@ namespace ngen::vulkan {
     void VulkanContext::dispose() {
         if (VK_NULL_HANDLE != m_instance) {
             m_device.dispose();
-            m_windowSurface.dispose(m_instance);
+            m_windowSurface.dispose();
 
             vkDestroyInstance(m_instance, nullptr);
             m_instance = VK_NULL_HANDLE;
@@ -52,7 +52,7 @@ namespace ngen::vulkan {
                 printf("\t%s\n", extension.extensionName);
             }
 
-            if (m_windowSurface.initialize(m_instance, platformWindow)) {
+            if (m_windowSurface.initialize(m_instance, platformWindow, width, height)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
                 if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
                     return true;
