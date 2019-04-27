@@ -6,6 +6,7 @@
 namespace {
     const char *kEngineName = "nGen";
     const uint32_t kEngineVersion = VK_MAKE_VERSION(1, 0, 0);
+    const uint32_t kVulkanSdkVersion = VK_API_VERSION_1_0;
 }
 
 namespace ngen::vulkan {
@@ -34,25 +35,25 @@ namespace ngen::vulkan {
     //! \param height [in] - The height of the window (in pixels).
     //! \param applicationName [in] - The name of the application.
     //! \returns True if the object initialized successfully otherwise false.
-    bool VulkanContext::initialize(PlatformWindow platformWindow, uint32_t width, uint32_t height, const char *applicationName) {
+    bool VulkanContext::initialize(SDL_Window *window, const char *applicationName) {
         if (m_instance != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;
         }
 
+        uint32_t extensionCount;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+        printf("Listing extensions:\n");
+        for (const auto &extension : extensions) {
+            printf("\t%s\n", extension.extensionName);
+        }
+
         if (createInstance(applicationName)) {
-            uint32_t extensionCount;
-            vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-
-            std::vector<VkExtensionProperties> extensions(extensionCount);
-            vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-            printf("Listing extensions:\n");
-            for (const auto &extension : extensions) {
-                printf("\t%s\n", extension.extensionName);
-            }
-
-            if (m_windowSurface.initialize(m_instance, platformWindow, width, height)) {
+            if (m_windowSurface.initialize(m_instance, window)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
                 if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
                     return true;
@@ -77,7 +78,7 @@ namespace ngen::vulkan {
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = kEngineName;
         appInfo.engineVersion = kEngineVersion;
-        appInfo.apiVersion = VK_API_VERSION_1_0;
+        appInfo.apiVersion = kVulkanSdkVersion;
 
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

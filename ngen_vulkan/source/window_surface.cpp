@@ -1,5 +1,6 @@
 
 #include <cstdio>
+#include <SDL_vulkan.h>
 #include "window_surface.h"
 #include "vulkan_error.h"
 
@@ -31,19 +32,14 @@ namespace ngen::vulkan {
     //! \param context [in] - The VulkanContext to be used.
     //! \param hwnd [in] - The handle to the system window used for presentation.
     //! \returns True if the object initialized successfully otherwise false.
-    bool WindowSurface::initialize(VkInstance instance, PlatformWindow platformWindow, uint32_t width, uint32_t height) {
-        SurfaceCreateInfo createInfo;
-
-        ngen::vulkan::platform::initializeSurfaceCreateInfo(createInfo, platformWindow);
-
-        VkResult result = ngen::vulkan::platform::createSurface(instance, createInfo, nullptr, &m_surface);
-        if (result != VK_SUCCESS) {
-            printf("Failed to create window surface: %s\n", getResultString(result));
+    bool WindowSurface::initialize(VkInstance instance, SDL_Window *window) {
+        if (!ngen::vulkan::platform::createSurface(window, instance, &m_surface)) {
+            printf("Failed to create window surface\n");
             return false;
         }
 
-        m_width = width;
-        m_height = height;
+        SDL_Vulkan_GetDrawableSize(window, &m_width, &m_height);
+
         m_instance = instance;
 
         printf("Created window surface\n");
