@@ -14,6 +14,7 @@ namespace ngen::vulkan {
         dispose();
     }
 
+    //! \brief Destroys all resources currently referenced by the swap chain.
     void SwapChain::dispose() {
         if (VK_NULL_HANDLE != m_handle) {
             destroyImageViews();
@@ -117,6 +118,7 @@ namespace ngen::vulkan {
         return extent;
     }
 
+    //! \brief Retrieves a list of images from the swap chain.
     void SwapChain::extractImages() {
         uint32_t imageCount;
 
@@ -126,6 +128,8 @@ namespace ngen::vulkan {
         vkGetSwapchainImagesKHR(m_device, m_handle, &imageCount, m_images.data());
     }
 
+    //! \brief Creates a list of image views for the swapchains images.
+    //! \returns <em>True</em> if the image views created successfully otherwise <em>false</em>.
     bool SwapChain::createImageViews() {
         destroyImageViews();
 
@@ -160,6 +164,7 @@ namespace ngen::vulkan {
         return true;
     }
 
+    //! \brief Destroys all image views that were created by the swap chain.
     void SwapChain::destroyImageViews() {
         for (auto imageView : m_imageViews) {
             vkDestroyImageView(m_device, imageView, nullptr);

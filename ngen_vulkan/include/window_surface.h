@@ -34,6 +34,8 @@ namespace ngen::vulkan {
         void dispose();
         bool initialize(VkInstance instance, SDL_Window *window);
 
+        bool onWindowResized();
+
         VkSurfaceKHR getSurface() const;
 
         operator VkSurfaceKHR() const; // NOLINT
