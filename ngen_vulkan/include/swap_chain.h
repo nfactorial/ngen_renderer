@@ -38,13 +38,13 @@ namespace ngen::vulkan {
         void dispose();
 
         void initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
-        bool create(Device &device, WindowSurface &surface, uint32_t width, uint32_t height);
+        bool create(Device &device, WindowSurface &surface);
 
         bool isUsable() const;
 
         VkSurfaceFormatKHR chooseSurfaceFormat() const;
         VkPresentModeKHR choosePresentMode() const;
-        VkExtent2D chooseExtent(uint32_t width, uint32_t height) const;
+        VkExtent2D chooseExtent(int width, int height) const;
 
     private:
         void enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
