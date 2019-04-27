@@ -45,4 +45,10 @@ namespace ngen::vulkan {
         printf("Created window surface\n");
         return true;
     }
+
+    //! \brief Event handler invoked when the window has been resized.
+    //! \returns <em>True</em> if the resize was handled successfully otherwise <em>false</em>.
+    bool WindowSurface::onWindowResized() {
+        return false;
+    }
 }

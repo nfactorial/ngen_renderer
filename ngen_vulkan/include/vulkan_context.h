@@ -40,6 +40,8 @@ namespace ngen::vulkan {
         void dispose();
         bool initialize(SDL_Window *window, const char *applicationName);
 
+        bool onWindowResized();
+
         operator VkInstance() const; // NOLINT
 
     private:

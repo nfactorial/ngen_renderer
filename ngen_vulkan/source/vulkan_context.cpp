@@ -73,6 +73,12 @@ namespace ngen::vulkan {
         return false;
     }
 
+    //! \brief Event handler invoked by the application when the window has changed its dimensions.
+    //! \returns <em>True</em> if the context handled the resize successfully otherwise <em>false</em>.
+    bool VulkanContext::onWindowResized() {
+        return m_windowSurface.onWindowResized();
+    }
+
     //! \brief Creates the Vulkan instance for use by the application.
     //! \param applicationName [in] - The name associated with the running application.
     //! \returns True if the instance was created successfully otherwise false.
