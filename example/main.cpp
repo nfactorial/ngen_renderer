@@ -4,6 +4,8 @@
 #include <SDL_main.h>
 #include <vulkan_context.h>
 #include <SDL_syswm.h>
+#include <SDL_vulkan.h>
+#include <SDL_video.h>
 
 namespace {
     const int SCREEN_WIDTH = 640;
@@ -39,29 +41,15 @@ int main(int argc, char **argv) {
                 , SDL_WINDOWPOS_UNDEFINED
                 , SCREEN_WIDTH
                 , SCREEN_HEIGHT
-                , SDL_WINDOW_SHOWN
+                , SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN
         );
 
         if (!window) {
             printf("Failed to create window for testing.\n");
             printf("%s\n", SDL_GetError());
         } else {
-            int width, height;
-
-            SDL_GetWindowSize(window, &width, &height);
-
-            SDL_SysWMinfo wmInfo;
-            SDL_VERSION(&wmInfo.version);
-            SDL_GetWindowWMInfo(window, &wmInfo);
-
             ngen::vulkan::VulkanContext vulkan;
-#if defined(__APPLE__)
-            vulkan.initialize(wmInfo.info.cocoa.window, kApplicationTitle);
-#elif defined(_WIN32)
-            vulkan.initialize(wmInfo.info.win.window, static_cast<uint32_t>(width), static_cast<uint32_t>(height), kApplicationTitle);
-#else
-    #error Unknown platform
-#endif
+            vulkan.initialize(window, kApplicationTitle);
 
             printf("main entry point\n");
 
