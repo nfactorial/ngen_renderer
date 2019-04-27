@@ -54,6 +54,7 @@ namespace ngen::vulkan {
     private:
         std::vector<PhysicalDevice> m_physicalDevices;
         WindowSurface m_windowSurface;
+        SwapChain m_swapChain;
         Device m_device;
 
         VkInstance m_instance;

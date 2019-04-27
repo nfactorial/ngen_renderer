@@ -21,6 +21,7 @@ namespace ngen::vulkan {
     //! \brief Releases all resources currently referenced by this object.
     void VulkanContext::dispose() {
         if (VK_NULL_HANDLE != m_instance) {
+            m_swapChain.dispose();
             m_device.dispose();
             m_windowSurface.dispose();
 
@@ -56,10 +57,15 @@ namespace ngen::vulkan {
             if (m_windowSurface.initialize(m_instance, window)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
                 if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
-                    return true;
-                }
+                    m_swapChain.initialize(*physicalDevice, m_windowSurface);
+                    if (m_swapChain.create(m_device, m_windowSurface)) {
+                        return true;
+                    }
 
-                printf("Unable to find suitable device for rendering.\n");
+                    printf("Failed to create swap chain.");
+                } else {
+                    printf("Unable to find suitable device for rendering.\n");
+                }
             }
         }
 

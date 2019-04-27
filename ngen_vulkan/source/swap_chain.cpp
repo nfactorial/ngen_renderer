@@ -39,7 +39,7 @@ namespace ngen::vulkan {
     //! \param width [in] - The width of the display (in pixels).
     //! \param height [in] - The height of the display (in pixels).
     //! \returns True if the swap chain created successfully otherwise false.
-    bool SwapChain::create(Device &device, WindowSurface &surface, uint32_t width, uint32_t height) {
+    bool SwapChain::create(Device &device, WindowSurface &surface) {
         VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat();
 
         uint32_t imageCount = m_capabilities.minImageCount + 1;
@@ -53,7 +53,7 @@ namespace ngen::vulkan {
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = chooseExtent(width, height);
+        createInfo.imageExtent = chooseExtent(surface.getWidth(), surface.getHeight());
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         createInfo.preTransform = m_capabilities.currentTransform;
@@ -92,12 +92,12 @@ namespace ngen::vulkan {
     //! \param width [in] - The width of the target surface (in pixels).
     //! \param height [in] - The height of the target surface (in pixels).
     //! \returns The swap extents to be used with the swap chain.
-    VkExtent2D SwapChain::chooseExtent(uint32_t width, uint32_t height) const {
+    VkExtent2D SwapChain::chooseExtent(int width, int height) const {
         if (m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return m_capabilities.currentExtent;
         }
 
-        VkExtent2D extent = {width, height};
+        VkExtent2D extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
         extent.width = std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, extent.width));
         extent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, extent.height));
