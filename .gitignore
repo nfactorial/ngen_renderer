@@ -5,3 +5,4 @@
 # Build directory is not under version control
 build
 cmake-build*
+*.spv
