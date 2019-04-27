@@ -50,9 +50,17 @@ namespace ngen::vulkan {
         void enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
         void enumeratePresentModes(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
 
+        bool createImageViews();
+        void extractImages();
+
+        void destroyImageViews();
+
     private:
         std::vector<VkPresentModeKHR> m_presentModes;
         std::vector<VkSurfaceFormatKHR> m_formats;
+        std::vector<VkImageView> m_imageViews;
+        std::vector<VkImage> m_images;
+
         VkSurfaceCapabilitiesKHR m_capabilities;
 
         VkSwapchainKHR m_handle;

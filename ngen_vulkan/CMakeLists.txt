@@ -5,6 +5,7 @@ project(ngen_vulkan)
 set(SOURCE_FILES
     source/platform.cpp
     source/device.cpp
+    source/shader.cpp
     source/swap_chain.cpp
     source/physical_device.cpp
     source/vulkan_error.cpp
@@ -14,6 +15,7 @@ set(SOURCE_FILES
 set(INCLUDE_FILES
     include/platform.h
     include/device.h
+    include/shader.h
     include/swap_chain.h
     include/physical_device.h
     include/vulkan_error.h
