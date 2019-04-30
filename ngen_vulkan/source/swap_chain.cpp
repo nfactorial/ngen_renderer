@@ -39,7 +39,7 @@ namespace ngen::vulkan {
     //! \param width [in] - The width of the display (in pixels).
     //! \param height [in] - The height of the display (in pixels).
     //! \returns True if the swap chain created successfully otherwise false.
-    bool SwapChain::create(Device &device, WindowSurface &surface, uint32_t width, uint32_t height) {
+    bool SwapChain::create(Device &device, WindowSurface &surface) {
         VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat();
 
         uint32_t imageCount = m_capabilities.minImageCount + 1;
@@ -53,7 +53,7 @@ namespace ngen::vulkan {
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = chooseExtent(width, height);
+        createInfo.imageExtent = chooseExtent(surface.getWidth(), surface.getHeight());
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         createInfo.preTransform = m_capabilities.currentTransform;
@@ -78,6 +78,7 @@ namespace ngen::vulkan {
             return false;
         }
 
+        printf("Created swap chain\n");
         m_device = device;
         return true;
     }
