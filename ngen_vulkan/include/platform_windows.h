@@ -6,6 +6,9 @@
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_win32.h>
+#include <SDL_vulkan.h>
+
+struct SDL_Window;
 
 namespace ngen::vulkan {
     using PlatformWindow = HWND;
@@ -25,8 +28,8 @@ namespace ngen::vulkan {
             createInfo.hinstance = GetModuleHandle(nullptr);
         }
 
-        inline VkResult createSurface(VkInstance instance, SurfaceCreateInfo &createInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface) {
-            return vkCreateWin32SurfaceKHR(instance, &createInfo, pAllocator, pSurface);
+        inline bool createSurface(SDL_Window *window, VkInstance instance, VkSurfaceKHR* pSurface) {
+            return SDL_Vulkan_CreateSurface(window, instance, pSurface);
         }
     }
 }

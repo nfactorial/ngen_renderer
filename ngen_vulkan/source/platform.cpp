@@ -5,6 +5,8 @@ namespace ngen::vulkan::platform {
 #if defined(__APPLE__)
     const uint32_t kDefaultVulkanExtensionCount = 1;
     const char *kDefaultVulkanExtensions[] = {
+        VK_MVK_MACOS_SURFACE_EXTENSION_NAME,
+        VK_MVK_MOLTENVK_EXTENSION_NAME,
         VK_KHR_SURFACE_EXTENSION_NAME,
     };
 

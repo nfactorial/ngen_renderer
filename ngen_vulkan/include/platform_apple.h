@@ -2,10 +2,10 @@
 #ifndef NGEN_RENDERER_PLATFORM_APPLE
 #define NGEN_RENDERER_PLATFORM_APPLE
 
-#define VK_USE_PLATFORM_MACOS_MVK
-
-#include <vulkan/vulkan.h>
+#include <MoltenVK/vk_mvk_moltenvk.h>
+#include <MoltenVK/mvk_vulkan.h>
 #include <vulkan/vulkan_macos.h>
+#include <SDL_vulkan.h>
 
 namespace ngen::vulkan {
     using PlatformWindow = const void*;
@@ -24,8 +24,12 @@ namespace ngen::vulkan {
             createInfo.pView = platformWindow;
         }
 
-        inline VkResult createSurface(VkInstance instance, SurfaceCreateInfo &createInfo, const VkAllocationCallbacks* pAllocator, VkSurfaceKHR* pSurface) {
-            return vkCreateMacOSSurfaceMVK(instance, &createInfo, pAllocator, pSurface);
+        inline bool createSurface(SDL_Window *window, VkInstance instance, VkSurfaceKHR* pSurface) {
+            return SDL_Vulkan_CreateSurface(window, instance, pSurface);
+            // return vkCreateMacOSSurfaceMVK(instance, &createInfo, pAllocator, pSurface);
+
+            // For iOS...
+            // return vkCreateIOSSurfaceMVK(instance, &createInfo, pAllocator, pSurface);
         }
     }
 }
