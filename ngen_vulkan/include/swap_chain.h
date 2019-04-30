@@ -38,7 +38,7 @@ namespace ngen::vulkan {
         void dispose();
 
         void initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
-        bool create(Device &device, WindowSurface &surface, uint32_t width, uint32_t height);
+        bool create(Device &device, WindowSurface &surface);
 
         bool isUsable() const;
 

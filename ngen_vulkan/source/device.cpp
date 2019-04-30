@@ -57,8 +57,11 @@ namespace ngen::vulkan {
             vkGetDeviceQueue(m_handle, physicalDevice.findPresentationQueue(surface), 0, &m_presentationQueue);
 
             m_swapChain.initialize(physicalDevice, surface);
+            if (m_swapChain.create(*this, surface)) {
+                return true;
+            }
 
-            return true;
+            dispose();
         }
 
         return false;
