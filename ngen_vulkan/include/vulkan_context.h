@@ -38,7 +38,9 @@ namespace ngen::vulkan {
         ~VulkanContext();
 
         void dispose();
-        bool initialize(PlatformWindow platformWindow, uint32_t width, uint32_t height, const char *applicationName);
+        bool initialize(SDL_Window *window, const char *applicationName);
+
+        bool onWindowResized();
 
         operator VkInstance() const; // NOLINT
 
@@ -54,6 +56,7 @@ namespace ngen::vulkan {
     private:
         std::vector<PhysicalDevice> m_physicalDevices;
         WindowSurface m_windowSurface;
+        SwapChain m_swapChain;
         Device m_device;
 
         VkInstance m_instance;

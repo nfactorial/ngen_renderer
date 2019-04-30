@@ -6,6 +6,7 @@
 namespace {
     const char *kEngineName = "nGen";
     const uint32_t kEngineVersion = VK_MAKE_VERSION(1, 0, 0);
+    const uint32_t kVulkanSdkVersion = VK_API_VERSION_1_0;
 }
 
 namespace ngen::vulkan {
@@ -20,6 +21,7 @@ namespace ngen::vulkan {
     //! \brief Releases all resources currently referenced by this object.
     void VulkanContext::dispose() {
         if (VK_NULL_HANDLE != m_instance) {
+            m_swapChain.dispose();
             m_device.dispose();
             m_windowSurface.dispose();
 
@@ -34,36 +36,47 @@ namespace ngen::vulkan {
     //! \param height [in] - The height of the window (in pixels).
     //! \param applicationName [in] - The name of the application.
     //! \returns True if the object initialized successfully otherwise false.
-    bool VulkanContext::initialize(PlatformWindow platformWindow, uint32_t width, uint32_t height, const char *applicationName) {
+    bool VulkanContext::initialize(SDL_Window *window, const char *applicationName) {
         if (m_instance != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;
         }
 
+        uint32_t extensionCount;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+        printf("Listing extensions:\n");
+        for (const auto &extension : extensions) {
+            printf("\t%s\n", extension.extensionName);
+        }
+
         if (createInstance(applicationName)) {
-            uint32_t extensionCount;
-            vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-
-            std::vector<VkExtensionProperties> extensions(extensionCount);
-            vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-            printf("Listing extensions:\n");
-            for (const auto &extension : extensions) {
-                printf("\t%s\n", extension.extensionName);
-            }
-
-            if (m_windowSurface.initialize(m_instance, platformWindow, width, height)) {
+            if (m_windowSurface.initialize(m_instance, window)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
                 if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
-                    return true;
-                }
+                    m_swapChain.initialize(*physicalDevice, m_windowSurface);
+                    if (m_swapChain.create(m_device, m_windowSurface)) {
+                        return true;
+                    }
 
-                printf("Unable to find suitable device for rendering.\n");
+                    printf("Failed to create swap chain.");
+                } else {
+                    printf("Unable to find suitable device for rendering.\n");
+                }
             }
         }
 
         dispose();
         return false;
+    }
+
+    //! \brief Event handler invoked by the application when the window has changed its dimensions.
+    //! \returns <em>True</em> if the context handled the resize successfully otherwise <em>false</em>.
+    bool VulkanContext::onWindowResized() {
+        return m_windowSurface.onWindowResized();
     }
 
     //! \brief Creates the Vulkan instance for use by the application.
@@ -77,7 +90,7 @@ namespace ngen::vulkan {
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = kEngineName;
         appInfo.engineVersion = kEngineVersion;
-        appInfo.apiVersion = VK_API_VERSION_1_0;
+        appInfo.apiVersion = kVulkanSdkVersion;
 
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

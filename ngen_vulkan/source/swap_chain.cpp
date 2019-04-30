@@ -14,8 +14,11 @@ namespace ngen::vulkan {
         dispose();
     }
 
+    //! \brief Destroys all resources currently referenced by the swap chain.
     void SwapChain::dispose() {
         if (VK_NULL_HANDLE != m_handle) {
+            destroyImageViews();
+
             vkDestroySwapchainKHR(m_device, m_handle, nullptr);
             m_handle = VK_NULL_HANDLE;
             m_device = VK_NULL_HANDLE;
@@ -78,8 +81,17 @@ namespace ngen::vulkan {
             return false;
         }
 
-        printf("Created swap chain\n");
+        printf("Successfully created swap chain for rendering.\n");
+
         m_device = device;
+
+        extractImages();
+
+        if (!createImageViews()) {
+            dispose();
+            return false;
+        }
+
         return true;
     }
 
@@ -93,17 +105,72 @@ namespace ngen::vulkan {
     //! \param width [in] - The width of the target surface (in pixels).
     //! \param height [in] - The height of the target surface (in pixels).
     //! \returns The swap extents to be used with the swap chain.
-    VkExtent2D SwapChain::chooseExtent(uint32_t width, uint32_t height) const {
+    VkExtent2D SwapChain::chooseExtent(int width, int height) const {
         if (m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return m_capabilities.currentExtent;
         }
 
-        VkExtent2D extent = {width, height};
+        VkExtent2D extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
         extent.width = std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, extent.width));
         extent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, extent.height));
 
         return extent;
+    }
+
+    //! \brief Retrieves a list of images from the swap chain.
+    void SwapChain::extractImages() {
+        uint32_t imageCount;
+
+        vkGetSwapchainImagesKHR(m_device, m_handle, &imageCount, nullptr);
+        m_images.resize(imageCount);
+
+        vkGetSwapchainImagesKHR(m_device, m_handle, &imageCount, m_images.data());
+    }
+
+    //! \brief Creates a list of image views for the swapchains images.
+    //! \returns <em>True</em> if the image views created successfully otherwise <em>false</em>.
+    bool SwapChain::createImageViews() {
+        destroyImageViews();
+
+        for (auto& m_image : m_images) {
+            VkImageViewCreateInfo info = {};
+
+            info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            info.image = m_image;
+            info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            info.format = chooseSurfaceFormat().format;
+            info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            info.subresourceRange.baseMipLevel = 0;
+            info.subresourceRange.levelCount = 1;
+            info.subresourceRange.baseArrayLayer = 0;
+            info.subresourceRange.layerCount = 1;
+
+            VkImageView imageView;
+
+            VkResult result = vkCreateImageView(m_device, &info, nullptr, &imageView);
+            if (VK_SUCCESS != result) {
+                printf("Failed to create image view: %s\n", getResultString(result));
+                return false;
+            }
+
+            m_imageViews.push_back(imageView);
+        }
+
+        return true;
+    }
+
+    //! \brief Destroys all image views that were created by the swap chain.
+    void SwapChain::destroyImageViews() {
+        for (auto imageView : m_imageViews) {
+            vkDestroyImageView(m_device, imageView, nullptr);
+        }
+
+        m_imageViews.clear();
     }
 
     //! \brief Selects a surface format suitable for use by the renderer.

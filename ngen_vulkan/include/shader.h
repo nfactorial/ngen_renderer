@@ -14,63 +14,40 @@
 // limitations under the License.
 //
 
-#ifndef NGEN_WINDOW_SURFACE
-#define NGEN_WINDOW_SURFACE
+#ifndef NGEN_VULKAN_SHADER
+#define NGEN_VULKAN_SHADER
 
 ////////////////////////////////////////////////////////////////////////////
 
 #include "platform.h"
-
-struct SDL_Window;
 
 
 ////////////////////////////////////////////////////////////////////////////
 
 // TODO: Need to add platform specific implementations
 namespace ngen::vulkan {
-    class WindowSurface {
+    class Device;
+
+    class Shader {
     public:
-        WindowSurface();
-        ~WindowSurface();
+        Shader();
+        ~Shader();
 
         void dispose();
-        bool initialize(VkInstance instance, SDL_Window *window);
+        bool create(Device &device, void *code, size_t length);
 
-        bool onWindowResized();
-
-        VkSurfaceKHR getSurface() const;
-
-        operator VkSurfaceKHR() const; // NOLINT
-
-        int getWidth() const;
-        int getHeight() const;
+        operator VkShaderModule() const;  // NOLINT
 
     private:
-
-    private:
-        VkSurfaceKHR m_surface;
-        VkInstance m_instance;
-        int m_height;
-        int m_width;
+        VkShaderModule m_handle;
+        VkDevice m_device;
     };
 
-    inline WindowSurface::operator VkSurfaceKHR() const {
-        return m_surface;
-    }
-
-    inline VkSurfaceKHR WindowSurface::getSurface() const {
-        return m_surface;
-    }
-
-    inline int WindowSurface::getWidth() const {
-        return m_width;
-    }
-
-    inline int WindowSurface::getHeight() const {
-        return m_height;
+    inline Shader::operator VkShaderModule() const {
+        return m_handle;
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
-#endif //NGEN_WINDOW_SURFACE
+#endif //NGEN_VULKAN_SHADER
