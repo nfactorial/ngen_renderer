@@ -19,6 +19,7 @@ set(INCLUDE_FILES
     include/swap_chain.h
     include/physical_device.h
     include/vulkan_error.h
+    include/vulkan_error_def.h
     include/window_surface.h
     include/vulkan_context.h)
 
