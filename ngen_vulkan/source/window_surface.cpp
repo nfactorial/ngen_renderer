@@ -38,6 +38,7 @@ namespace ngen::vulkan {
             return false;
         }
 
+        // TODO: This makes us hard-coded to SDL, must be removed in the future!
         SDL_Vulkan_GetDrawableSize(window, &m_width, &m_height);
 
         m_instance = instance;

@@ -25,6 +25,7 @@ namespace ngen::vulkan {
         }
 
         inline bool createSurface(SDL_Window *window, VkInstance instance, VkSurfaceKHR* pSurface) {
+            // TODO: This locks us to SDL, this should be made framework neutral in the future
             return SDL_Vulkan_CreateSurface(window, instance, pSurface);
             // return vkCreateMacOSSurfaceMVK(instance, &createInfo, pAllocator, pSurface);
 
