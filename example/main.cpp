@@ -1,5 +1,5 @@
 
-#include <stdio.h>
+#include <cstdio>
 #include <SDL.h>
 #include <SDL_main.h>
 #include <vulkan_context.h>
