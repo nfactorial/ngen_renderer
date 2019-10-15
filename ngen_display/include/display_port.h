@@ -26,27 +26,25 @@
 
 class Ray;
 
-namespace ngen {
-    namespace display {
-        class DisplayPort {
-        public:
-            DisplayPort();
-            ~DisplayPort();
+namespace ngen::display {
+    class DisplayPort {
+    public:
+        DisplayPort();
+        ~DisplayPort();
 
-            void renderContent();
-            void createRay(Ray &ray, float x, float y);
+        void renderContent();
+        void createRay(Ray &ray, float x, float y);
 
-        private:
-            std::vector<DisplayPort*> m_children;
+    private:
+        std::vector<DisplayPort*> m_children;
 
-            DisplayPort *m_parent;
-            bool        m_hidden;
-            int         m_x;
-            int         m_y;
-            int         m_width;
-            int         m_height;
-        };
-    }
+        DisplayPort *m_parent;
+        bool        m_hidden;
+        int         m_x;
+        int         m_y;
+        int         m_width;
+        int         m_height;
+    };
 }
 
 ////////////////////////////////////////////////////////////////////////////
