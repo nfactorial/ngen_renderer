@@ -98,7 +98,7 @@ namespace ngen::vulkan {
         createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultVulkanExtensionCount;
         createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultVulkanExtensions;
 
-        VkResult result = vkCreateInstance(&createInfo, nullptr, &m_instance);
+        const auto result = vkCreateInstance(&createInfo, nullptr, &m_instance);
         if (result != VK_SUCCESS) {
             printf("Failed to create instance: %s!\n", getResultString(result));
             return false;
