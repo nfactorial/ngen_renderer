@@ -10,6 +10,7 @@ set(SOURCE_FILES
     source/physical_device.cpp
     source/vulkan_error.cpp
     source/window_surface.cpp
+    source/vulkan_pipeline.cpp
     source/vulkan_context.cpp)
 
 set(INCLUDE_FILES
@@ -21,6 +22,7 @@ set(INCLUDE_FILES
     include/vulkan_error.h
     include/vulkan_error_def.h
     include/window_surface.h
+    include/vulkan_pipeline.h
     include/vulkan_context.h)
 
 find_package(SDL2 REQUIRED)
