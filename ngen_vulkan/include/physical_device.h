@@ -36,12 +36,12 @@ namespace ngen::vulkan {
 
         void initialize(VkPhysicalDevice handle);
 
-        bool hasExtension(const char *extensionName) const;
+        [[nodiscard]] bool hasExtension(const char *extensionName) const;
 
-        int findQueueFamily(VkQueueFlags flags) const;
-        int findPresentationQueue(WindowSurface &surface) const;
+        [[nodiscard]] int findQueueFamily(VkQueueFlags flags) const;
+        [[nodiscard]] int findPresentationQueue(WindowSurface &surface) const;
 
-        VkPhysicalDevice getHandle() const;
+        [[nodiscard]] VkPhysicalDevice getHandle() const;
 
         operator VkPhysicalDevice() const; // NOLINT
 

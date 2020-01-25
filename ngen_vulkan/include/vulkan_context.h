@@ -44,6 +44,10 @@ namespace ngen::vulkan {
 
         operator VkInstance() const; // NOLINT
 
+        Device& getDevice();
+
+        static void dumpExtensions();
+
     private:
         bool createInstance(const char *applicationName);
 
@@ -59,11 +63,15 @@ namespace ngen::vulkan {
         SwapChain m_swapChain;
         Device m_device;
 
-        VkInstance m_instance;
+        VkInstance m_handle;
     };
 
     inline VulkanContext::operator VkInstance() const {
-        return m_instance;
+        return m_handle;
+    }
+
+    inline Device& VulkanContext::getDevice() {
+        return m_device;
     }
 }
 

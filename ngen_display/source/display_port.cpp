@@ -21,6 +21,9 @@ namespace ngen::display {
     //! \brief Renders the contents of tbe display port.
     void DisplayPort::renderContent() {
 
+        for (auto child : m_children) {
+            child->renderContent();
+        }
     }
 
     //! \brief Creates a new ray that passes through the display port at the specified location.

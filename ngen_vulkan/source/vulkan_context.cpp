@@ -11,7 +11,7 @@ namespace {
 
 namespace ngen::vulkan {
     VulkanContext::VulkanContext()
-    : m_instance(VK_NULL_HANDLE) {
+    : m_handle(VK_NULL_HANDLE) {
     }
 
     VulkanContext::~VulkanContext() {
@@ -20,13 +20,26 @@ namespace ngen::vulkan {
 
     //! \brief Releases all resources currently referenced by this object.
     void VulkanContext::dispose() {
-        if (VK_NULL_HANDLE != m_instance) {
+        if (VK_NULL_HANDLE != m_handle) {
             m_swapChain.dispose();
             m_device.dispose();
             m_windowSurface.dispose();
 
-            vkDestroyInstance(m_instance, nullptr);
-            m_instance = VK_NULL_HANDLE;
+            vkDestroyInstance(m_handle, nullptr);
+            m_handle = VK_NULL_HANDLE;
+        }
+    }
+
+    void VulkanContext::dumpExtensions() {
+        uint32_t extensionCount;
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> extensions(extensionCount);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+        printf("Listing extensions:\n");
+        for (const auto &extension : extensions) {
+            printf("\t%s\n", extension.extensionName);
         }
     }
 
@@ -37,7 +50,7 @@ namespace ngen::vulkan {
     //! \param applicationName [in] - The name of the application.
     //! \returns True if the object initialized successfully otherwise false.
     bool VulkanContext::initialize(SDL_Window *window, const char *applicationName) {
-        if (m_instance != VK_NULL_HANDLE) {
+        if (m_handle != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;
         }
@@ -54,7 +67,7 @@ namespace ngen::vulkan {
         }
 
         if (createInstance(applicationName)) {
-            if (m_windowSurface.initialize(m_instance, window)) {
+            if (m_windowSurface.initialize(m_handle, window)) {
                 PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
                 if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
                     m_swapChain.initialize(*physicalDevice, m_windowSurface);
@@ -98,7 +111,7 @@ namespace ngen::vulkan {
         createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultVulkanExtensionCount;
         createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultVulkanExtensions;
 
-        const auto result = vkCreateInstance(&createInfo, nullptr, &m_instance);
+        const auto result = vkCreateInstance(&createInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {
             printf("Failed to create instance: %s!\n", getResultString(result));
             return false;
@@ -155,15 +168,15 @@ namespace ngen::vulkan {
     uint32_t VulkanContext::enumeratePhysicalDevices() {
         uint32_t deviceCount = 0;
 
-        if (m_instance != VK_NULL_HANDLE) {
+        if (m_handle != VK_NULL_HANDLE) {
             m_physicalDevices.clear();
 
-            vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
+            vkEnumeratePhysicalDevices(m_handle, &deviceCount, nullptr);
 
             m_physicalDevices.resize(deviceCount);
             if (deviceCount != 0) {
                 std::vector<VkPhysicalDevice> devices(deviceCount);
-                vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
+                vkEnumeratePhysicalDevices(m_handle, &deviceCount, devices.data());
 
                 for (uint32_t index = 0; index < deviceCount; ++index) {
                     m_physicalDevices[index].initialize(devices[index]);

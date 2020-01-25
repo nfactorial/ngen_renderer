@@ -7,6 +7,7 @@ set(SOURCE_FILES
     source/device.cpp
     source/shader.cpp
     source/swap_chain.cpp
+    source/render_pass.cpp
     source/physical_device.cpp
     source/vulkan_error.cpp
     source/window_surface.cpp
@@ -18,6 +19,7 @@ set(INCLUDE_FILES
     include/device.h
     include/shader.h
     include/swap_chain.h
+    include/render_pass.h
     include/physical_device.h
     include/vulkan_error.h
     include/vulkan_error_def.h
