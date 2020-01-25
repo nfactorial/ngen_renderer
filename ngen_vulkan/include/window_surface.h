@@ -21,13 +21,13 @@
 
 #include "platform.h"
 
+// TODO:: We do not want to be tied to SDL in the future, here during early development only
 struct SDL_Window;
-
 
 ////////////////////////////////////////////////////////////////////////////
 
-// TODO: Need to add platform specific implementations
 namespace ngen::vulkan {
+    //! \brief Represents the surface of a display window to be used by the renderer.
     class WindowSurface {
     public:
         WindowSurface();
@@ -38,12 +38,10 @@ namespace ngen::vulkan {
 
         bool onWindowResized();
 
-        VkSurfaceKHR getSurface() const;
-
         operator VkSurfaceKHR() const; // NOLINT
 
-        int getWidth() const;
-        int getHeight() const;
+        [[nodiscard]] int getWidth() const;
+        [[nodiscard]] int getHeight() const;
 
     private:
 
@@ -58,14 +56,12 @@ namespace ngen::vulkan {
         return m_surface;
     }
 
-    inline VkSurfaceKHR WindowSurface::getSurface() const {
-        return m_surface;
-    }
-
+    //! \returns The width (in pixels) of the surface.
     inline int WindowSurface::getWidth() const {
         return m_width;
     }
 
+    //! \returns The height (in pixels) of the surface.
     inline int WindowSurface::getHeight() const {
         return m_height;
     }

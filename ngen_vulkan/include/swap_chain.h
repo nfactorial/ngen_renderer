@@ -40,11 +40,13 @@ namespace ngen::vulkan {
         void initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
         bool create(Device &device, WindowSurface &surface);
 
-        bool isUsable() const;
+        operator VkSwapchainKHR () const; // NOLINT
 
-        VkSurfaceFormatKHR chooseSurfaceFormat() const;
-        VkPresentModeKHR choosePresentMode() const;
-        VkExtent2D chooseExtent(int width, int height) const;
+        [[nodiscard]] bool isUsable() const;
+
+        [[nodiscard]] VkSurfaceFormatKHR chooseSurfaceFormat() const;
+        [[nodiscard]] VkPresentModeKHR choosePresentMode() const;
+        [[nodiscard]] VkExtent2D chooseExtent(int width, int height) const;
 
     private:
         void enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
@@ -66,6 +68,10 @@ namespace ngen::vulkan {
         VkSwapchainKHR m_handle;
         VkDevice m_device;
     };
+
+    inline SwapChain::operator VkSwapchainKHR () const {
+        return m_handle;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////

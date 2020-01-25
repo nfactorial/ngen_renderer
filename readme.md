@@ -12,8 +12,11 @@ the rendering interface into higher order objects for use by the game itself.
 nGen uses SDL to manage system initialization, you must have SDL available on your system in-order for
 compilation to succeed. Please see https://www.libsdl.org/
 
-@ Vulkan
+# Vulkan
 The Vulkan graphics library is used to provide rendering functionality for the framework.
+
+The build configuration is still in the process of being established along with the initial
+library implementation. The build configuration will be stabalised once the library is in a usable state.
 
 ## Windows
 To build this library on Windows, download the latest [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
@@ -24,3 +27,11 @@ point at the SDK location.
 To build this library on OSX, download the latest [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) and
 install it onto your machine. You will need to configure an environment variable VULKAN_SDK to contain
 the path to the installed folder.
+```
+VULKAN_SDK="${HOME}/Library/Frameworks/vulkan-sdk/macOS"
+```
+### JetBrains C-Lion
+When developing with C-Lion, if you do not wish to have a system-wide environment variable. You may
+configure the environment root by navigating to Preferences/Build,Execution,Deployment and choosing
+the CMake sub-option. Here you may specify environment variables that are exclusive to your project.
+ 
