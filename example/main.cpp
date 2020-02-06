@@ -4,11 +4,11 @@
 
 #include <SDL.h>
 #include <SDL_main.h>
-#include <vulkan_context.h>
 #include <SDL_syswm.h>
 #include <SDL_vulkan.h>
 #include <SDL_video.h>
 
+#include <renderer.h>
 #include <shader.h>
 
 namespace {
@@ -66,20 +66,20 @@ int main(int argc, char **argv) {
         ngen::vulkan::VulkanContext::dumpExtensions();
 
         SDL_Window *window = SDL_CreateWindow(
-                  kApplicationTitle
-                , SDL_WINDOWPOS_UNDEFINED
-                , SDL_WINDOWPOS_UNDEFINED
-                , SCREEN_WIDTH
-                , SCREEN_HEIGHT
-                , SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN
+              kApplicationTitle
+            , SDL_WINDOWPOS_UNDEFINED
+            , SDL_WINDOWPOS_UNDEFINED
+            , SCREEN_WIDTH
+            , SCREEN_HEIGHT
+            , SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN
         );
 
         if (!window) {
             printf("Failed to create window for testing.\n");
             printf("%s\n", SDL_GetError());
         } else {
-            ngen::vulkan::VulkanContext vulkan;
-            vulkan.initialize(window, kApplicationTitle);
+            ngen::vulkan::Renderer renderer;
+            renderer.initialize(window, kApplicationTitle);
 
             printf("Loading shader data\n");
 
@@ -91,8 +91,8 @@ int main(int argc, char **argv) {
             ngen::vulkan::Shader vertexShader;
             ngen::vulkan::Shader fragmentShader;
 
-            vertexShader.create(vulkan.getDevice(), vertexSource.ptr.get(), vertexSource.length);
-            fragmentShader.create(vulkan.getDevice(), fragmentSource.ptr.get(), fragmentSource.length);
+            vertexShader.create(renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length);
+            fragmentShader.create(renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length);
 
             printf("main entry point\n");
 
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
                 SDL_Delay(1);
             }
 
-            vulkan.dispose();
+            renderer.dispose();
 
             SDL_DestroyWindow(window);
         }
