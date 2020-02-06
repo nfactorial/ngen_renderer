@@ -1,6 +1,3 @@
-//
-//
-//
 
 #ifndef NGEN_VULKAN_PIPELINE
 #define NGEN_VULKAN_PIPELINE
