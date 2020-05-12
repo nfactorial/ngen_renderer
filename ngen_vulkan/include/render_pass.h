@@ -17,10 +17,15 @@ namespace ngen::vulkan {
         RenderPass();
         ~RenderPass();
 
+        RenderPass(const RenderPass &other) = delete;
+        RenderPass& operator=(const RenderPass &other) = delete;
+
         void dispose();
         bool create(Device &device);
 
         operator VkRenderPass() const;  // NOLINT
+
+        static const VkRenderPass kInvalidHandle;
 
     private:
         VkRenderPass m_handle;

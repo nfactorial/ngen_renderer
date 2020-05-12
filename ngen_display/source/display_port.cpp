@@ -20,7 +20,6 @@ namespace ngen::display {
 
     //! \brief Renders the contents of tbe display port.
     void DisplayPort::renderContent() {
-
         for (auto child : m_children) {
             child->renderContent();
         }

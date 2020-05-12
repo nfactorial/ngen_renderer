@@ -3,8 +3,10 @@
 #include "device.h"
 
 namespace ngen::vulkan {
+    const VkRenderPass RenderPass::kInvalidHandle = 0l;
+
     RenderPass::RenderPass()
-    : m_handle(nullptr)
+    : m_handle(kInvalidHandle)
     , m_device(nullptr) {
     }
 
@@ -14,10 +16,10 @@ namespace ngen::vulkan {
 
     //! Destroys any resources allocated by this object.
     void RenderPass::dispose() {
-        if (m_handle != nullptr) {
+        if (m_handle != kInvalidHandle) {
             vkDestroyRenderPass(m_device, m_handle, nullptr);
 
-            m_handle = nullptr;
+            m_handle = kInvalidHandle;
             m_device = nullptr;
         }
     }

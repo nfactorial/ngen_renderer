@@ -10,6 +10,9 @@ namespace ngen::vulkan {
         Renderer() = default;
         ~Renderer();
 
+        Renderer(const Renderer &other) = delete;
+        Renderer& operator=(const Renderer &other) = delete;
+
         void dispose();
         bool initialize(SDL_Window *window, const char *applicationName);
 

@@ -21,6 +21,9 @@ namespace ngen::vulkan {
         Device();
         ~Device();
 
+        Device(const Device &other) = delete;
+        Device& operator=(const Device &other) = delete;
+
         bool create(PhysicalDevice &physicalDevice, WindowSurface &surface, size_t extensionCount, const char **requiredExtensions);
         void dispose();
 

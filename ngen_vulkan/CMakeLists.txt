@@ -9,6 +9,7 @@ set(SOURCE_FILES
     source/renderer.cpp
     source/swap_chain.cpp
     source/render_pass.cpp
+    source/command_pool.cpp
     source/physical_device.cpp
     source/vulkan_error.cpp
     source/window_surface.cpp
@@ -22,12 +23,15 @@ set(INCLUDE_FILES
     include/renderer.h
     include/swap_chain.h
     include/render_pass.h
+    include/command_pool.h
     include/physical_device.h
     include/vulkan_error.h
     include/vulkan_error_def.h
     include/window_surface.h
     include/vulkan_pipeline.h
     include/vulkan_context.h)
+
+add_definitions(-DNOMINMAX)
 
 find_package(SDL2 REQUIRED)
 

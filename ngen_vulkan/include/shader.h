@@ -18,6 +18,9 @@ namespace ngen::vulkan {
         Shader();
         ~Shader();
 
+        Shader(const Shader &other) = delete;
+        Shader& operator=(const Shader &other) = delete;
+
         void dispose();
         bool create(Device &device, void *code, size_t length);
 

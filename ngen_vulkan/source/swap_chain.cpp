@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include "swap_chain.h"
 #include "physical_device.h"
 #include "device.h"

@@ -2,7 +2,6 @@
 #include <string>
 #include "physical_device.h"
 #include "window_surface.h"
-#include "device.h"
 
 namespace ngen::vulkan {
     PhysicalDevice::PhysicalDevice()

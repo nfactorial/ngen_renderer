@@ -18,6 +18,9 @@ namespace ngen::vulkan {
         WindowSurface();
         ~WindowSurface();
 
+        WindowSurface(const WindowSurface &other) = delete;
+        WindowSurface& operator=(const WindowSurface &other) = delete;
+
         void dispose();
         bool initialize(VkInstance instance, SDL_Window *window);
 

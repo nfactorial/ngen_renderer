@@ -10,6 +10,7 @@
 
 #include <renderer.h>
 #include <shader.h>
+#include <command_pool.h>
 
 namespace {
     const int SCREEN_WIDTH = 640;
@@ -31,7 +32,7 @@ namespace {
             return result;
         }
 
-        result.length = file.tellg();
+        result.length = static_cast<size_t>(file.tellg());
         result.ptr = std::make_unique<char[]>(result.length);
 
         file.seekg(0);
@@ -55,8 +56,6 @@ void processEvent(const SDL_Event &event, bool &running) {
 
 int main(int argc, char **argv) {
     int result = -1;
-
-    setbuf(stdout, nullptr);
 
     printf("ngen example\n");
 
@@ -90,6 +89,9 @@ int main(int argc, char **argv) {
 
             ngen::vulkan::Shader vertexShader;
             ngen::vulkan::Shader fragmentShader;
+
+            ngen::vulkan::CommandPool pool;
+            pool.allocateCommandBuffers(24);
 
             vertexShader.create(renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length);
             fragmentShader.create(renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length);
