@@ -11,6 +11,7 @@
 
 namespace ngen::vulkan {
     class Device;
+    class CommandPool;
 
     class RenderPass {
     public:
@@ -21,13 +22,17 @@ namespace ngen::vulkan {
         RenderPass& operator=(const RenderPass &other) = delete;
 
         void dispose();
-        bool create(Device &device);
+        [[nodiscard]] bool create(Device &device);
+
+        [[nodiscard]] bool begin(const CommandPool &commandPool, size_t bufferIndex);
+        void end();
 
         operator VkRenderPass() const;  // NOLINT
 
         static const VkRenderPass kInvalidHandle;
 
     private:
+        VkCommandBuffer m_commandBuffer;
         VkRenderPass m_handle;
         VkDevice m_device;
     };
