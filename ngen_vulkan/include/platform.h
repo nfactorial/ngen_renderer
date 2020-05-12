@@ -9,7 +9,8 @@
 #elif defined(__linux__)
     #error Linux is not currently supported
 #else
-    #error Unsupported platform
+#include "platform_windows.h"
+//    #error Unsupported platform
 #endif
 
 #endif //ndef NGEN_VULKAN_PLATFORM

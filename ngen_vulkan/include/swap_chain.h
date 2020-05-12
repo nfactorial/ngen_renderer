@@ -20,6 +20,9 @@ namespace ngen::vulkan {
         SwapChain();
         ~SwapChain();
 
+        SwapChain(const SwapChain &other) = delete;
+        SwapChain& operator=(const SwapChain &other) = delete;
+
         void dispose();
 
         void initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
