@@ -106,6 +106,8 @@ int main(int argc, char **argv) {
                     processEvent(event, running);
                 }
 
+                renderer.renderTest();
+
                 SDL_Delay(1);
             }
 

@@ -35,18 +35,21 @@ namespace ngen::vulkan {
 
         [[nodiscard]] VkSurfaceFormatKHR chooseSurfaceFormat() const;
         [[nodiscard]] VkPresentModeKHR choosePresentMode() const;
-        [[nodiscard]] VkExtent2D chooseExtent(int width, int height) const;
 
         [[nodiscard]] bool acquireNextImage(VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex);
         [[nodiscard]] bool acquireNextImage(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex);
 
         [[nodiscard]] size_t getImageCount() const;
 
+        [[nodiscard]] const VkExtent2D& getExtent() const;
+
     private:
+        [[nodiscard]] const VkExtent2D& chooseExtent(int width, int height);
+
         void enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
         void enumeratePresentModes(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
 
-        bool createImageViews();
+        [[nodiscard]] bool createImageViews();
         void extractImages();
 
         void destroyImageViews();
@@ -61,8 +64,13 @@ namespace ngen::vulkan {
         VkFormat m_imageFormat;
 
         VkSwapchainKHR m_handle;
+        VkExtent2D m_extent;
         VkDevice m_device;
     };
+
+    inline const VkExtent2D& SwapChain::getExtent() const {
+        return m_extent;
+    }
 
     inline VkFormat SwapChain::getImageFormat() const {
         return m_imageFormat;

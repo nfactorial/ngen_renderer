@@ -10,7 +10,7 @@
 namespace ngen::vulkan {
     class Renderer {
     public:
-        Renderer() = default;
+        Renderer();
         ~Renderer();
 
         Renderer(const Renderer &other) = delete;
@@ -30,6 +30,7 @@ namespace ngen::vulkan {
         void recordCommandBuffer(size_t index);
 
     private:
+        bool            m_initialized;
         VulkanContext   m_context;
         CommandPool     m_commandPool;
 
