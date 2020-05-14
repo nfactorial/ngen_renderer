@@ -63,14 +63,15 @@ namespace ngen::vulkan {
             return false;
         }
 
-        return false;
+        m_device = context.getDevice();
+        return true;
     }
 
     //! \brief Begins the command recording using a command buffer contained within the supplied command pool.
     //! \param commandPool [in] - The command pool that contains the command buffer to be used.
     //! \param bufferIndex [in] - Index of the buffer to be used within the command pool.
     //! \returns <em>True</em> if the render pass began successfully otherwise <em>false</em>.
-    bool RenderPass::begin(const CommandPool &commandPool, size_t bufferIndex) {
+    bool RenderPass::begin(const VulkanContext &context, const CommandPool &commandPool, size_t bufferIndex) {
         if (m_handle == kInvalidHandle || m_commandBuffer != VK_NULL_HANDLE) {
             return false;   // Not initialized or already started
         }
@@ -87,13 +88,13 @@ namespace ngen::vulkan {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = m_handle;
-        // renderPassInfo.framebuffer = swapChainFramebuffers[i];
+        //renderPassInfo.framebuffer = context.getSwapChain().getFrameBuffer(i);
         renderPassInfo.renderArea.offset = {0, 0};
-        // renderPassInfo.renderArea.extent = swapChainExtent;
+        renderPassInfo.renderArea.extent = context.getSwapChain().getExtent();
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
-        vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        //vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         // vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 

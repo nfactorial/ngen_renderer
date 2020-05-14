@@ -25,7 +25,7 @@ namespace ngen::vulkan {
         void dispose();
         [[nodiscard]] bool create(const VulkanContext &context);
 
-        [[nodiscard]] bool begin(const CommandPool &commandPool, size_t bufferIndex);
+        [[nodiscard]] bool begin(const VulkanContext &context, const CommandPool &commandPool, size_t bufferIndex);
         void end();
 
         operator VkRenderPass() const;  // NOLINT

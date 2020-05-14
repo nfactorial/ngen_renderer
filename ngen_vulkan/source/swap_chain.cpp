@@ -107,17 +107,15 @@ namespace ngen::vulkan {
     //! \param width [in] - The width of the target surface (in pixels).
     //! \param height [in] - The height of the target surface (in pixels).
     //! \returns The swap extents to be used with the swap chain.
-    VkExtent2D SwapChain::chooseExtent(int width, int height) const {
+    const VkExtent2D& SwapChain::chooseExtent(int width, int height) {
         if (m_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
             return m_capabilities.currentExtent;
         }
 
-        VkExtent2D extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+        m_extent.width = std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, static_cast<uint32_t>(width)));
+        m_extent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, static_cast<uint32_t>(height)));
 
-        extent.width = std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, extent.width));
-        extent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, extent.height));
-
-        return extent;
+        return m_extent;
     }
 
     //! \brief Attempts to acquire the next image in the swap chain for rendering.
@@ -136,7 +134,7 @@ namespace ngen::vulkan {
     //! \param imageIndex [out] - Pointer to an integer that will receive the index of the image.
     //! \returns <em>True</em> if the request processed successfully otherwise false.
     bool SwapChain::acquireNextImage(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex) {
-        return VK_SUCCESS == vkAcquireNextImageKHR(m_device, m_handle, timeout, semaphore, fence, imageIndex);
+        return m_handle && VK_SUCCESS == vkAcquireNextImageKHR(m_device, m_handle, timeout, semaphore, fence, imageIndex);
     }
 
     //! \brief Retrieves a list of images from the swap chain.
