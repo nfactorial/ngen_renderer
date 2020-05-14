@@ -16,6 +16,8 @@ namespace ngen::vulkan {
 
     //! \brief Destroys all resources belonging to this object.
     void Device::dispose() {
+        waitIdle();
+
         m_swapChain.dispose();
 
         if (VK_NULL_HANDLE != m_handle) {
@@ -24,6 +26,13 @@ namespace ngen::vulkan {
             m_graphicsQueue = VK_NULL_HANDLE;
             m_presentationQueue = VK_NULL_HANDLE;
             m_handle = VK_NULL_HANDLE;
+        }
+    }
+
+    //! \brief Waits for the device to become idle.
+    void Device::waitIdle() const {
+        if (VK_NULL_HANDLE != m_handle) {
+            vkDeviceWaitIdle(m_handle);
         }
     }
 

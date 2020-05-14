@@ -1,6 +1,7 @@
 
 #include "render_pass.h"
 #include "command_pool.h"
+#include "vulkan_context.h"
 #include "device.h"
 
 namespace ngen::vulkan {
@@ -27,18 +28,37 @@ namespace ngen::vulkan {
     }
 
     //! \brief  Prepares the object for use by the application.
-    //! \param  device [in] - The device to use when creating the render pass.
+    //! \param  context [in] - The vulkan context we will be interacting with.
     //! \returns <em>True</em> if the render pass was created successfully otherwise <em>false</em>.
-    bool RenderPass::create(Device &device) {
+    bool RenderPass::create(const VulkanContext &context) {
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = context.getSwapChain().getImageFormat();
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        VkAttachmentReference colorAttachmentRef{};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &colorAttachmentRef;
+
         // TODO: Need to be able to specify sub-passes and color attachments
         VkRenderPassCreateInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = 1;
-        renderPassInfo.pAttachments = nullptr;//&colorAttachment;
+        renderPassInfo.pAttachments = &colorAttachment;
         renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = nullptr;//&subpass;
+        renderPassInfo.pSubpasses = &subpass;
 
-        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &m_handle) != VK_SUCCESS) {
+        if (vkCreateRenderPass(context.getDevice(), &renderPassInfo, nullptr, &m_handle) != VK_SUCCESS) {
             printf("Failed to create render pass");
             return false;
         }
@@ -77,7 +97,7 @@ namespace ngen::vulkan {
 
         // vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        return true;x
+        return true;
     }
 
     //! \brief Informs the render pass that the recording of render commands has completed.
@@ -90,5 +110,9 @@ namespace ngen::vulkan {
         }
 
         // TODO: Need to be able to execute it
+    }
+
+    void RenderPass::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
+        vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 }

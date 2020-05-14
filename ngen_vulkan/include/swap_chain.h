@@ -26,15 +26,21 @@ namespace ngen::vulkan {
         void dispose();
 
         void initialize(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
-        bool create(Device &device, WindowSurface &surface);
+        [[nodiscard]] bool create(Device &device, WindowSurface &surface);
 
         operator VkSwapchainKHR () const; // NOLINT
 
+        [[nodiscard]] VkFormat getImageFormat() const;
         [[nodiscard]] bool isUsable() const;
 
         [[nodiscard]] VkSurfaceFormatKHR chooseSurfaceFormat() const;
         [[nodiscard]] VkPresentModeKHR choosePresentMode() const;
         [[nodiscard]] VkExtent2D chooseExtent(int width, int height) const;
+
+        [[nodiscard]] bool acquireNextImage(VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex);
+        [[nodiscard]] bool acquireNextImage(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex);
+
+        [[nodiscard]] size_t getImageCount() const;
 
     private:
         void enumerateSurfaceFormats(const PhysicalDevice &physicalDevice, const WindowSurface &surface);
@@ -52,10 +58,19 @@ namespace ngen::vulkan {
         std::vector<VkImage> m_images;
 
         VkSurfaceCapabilitiesKHR m_capabilities;
+        VkFormat m_imageFormat;
 
         VkSwapchainKHR m_handle;
         VkDevice m_device;
     };
+
+    inline VkFormat SwapChain::getImageFormat() const {
+        return m_imageFormat;
+    }
+
+    inline size_t SwapChain::getImageCount() const {
+        return m_images.size();
+    }
 
     inline SwapChain::operator VkSwapchainKHR () const {
         return m_handle;

@@ -19,7 +19,7 @@ namespace ngen::vulkan {
         ~Pipeline();
 
         void dispose();
-        bool initialize(Device &device);
+        [[nodiscard]] bool initialize(Device &device);
 
         operator VkPipelineLayout () const;
 

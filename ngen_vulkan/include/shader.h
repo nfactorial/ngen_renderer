@@ -22,7 +22,7 @@ namespace ngen::vulkan {
         Shader& operator=(const Shader &other) = delete;
 
         void dispose();
-        bool create(Device &device, void *code, size_t length);
+        [[nodiscard]] bool create(Device &device, void *code, size_t length);
 
         operator VkShaderModule() const;  // NOLINT
 

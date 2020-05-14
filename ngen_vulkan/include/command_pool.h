@@ -6,6 +6,7 @@
 
 #include <vector>
 #include "platform.h"
+#include "vulkan_context.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -23,8 +24,8 @@ namespace ngen::vulkan {
         CommandPool& operator=(const CommandPool &other) = delete;
 
         void dispose();
-        [[nodiscard]] bool create(const Device &device, const PhysicalDevice &physicalDevice, VkQueueFlags queueFlags);
-        [[nodiscard]] bool create(const Device &device, const PhysicalDevice &physicalDevice, VkQueueFlags queueFlags, int flags);
+        [[nodiscard]] bool create(const VulkanContext &context, VkQueueFlags queueFlags);
+        [[nodiscard]] bool create(const VulkanContext &context, VkQueueFlags queueFlags, int flags);
 
         [[nodiscard]] bool allocateCommandBuffers(size_t count);
 
