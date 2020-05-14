@@ -22,7 +22,7 @@ namespace ngen::vulkan {
         WindowSurface& operator=(const WindowSurface &other) = delete;
 
         void dispose();
-        bool initialize(VkInstance instance, SDL_Window *window);
+        [[nodiscard]] bool initialize(VkInstance instance, SDL_Window *window);
 
         bool onWindowResized();
 

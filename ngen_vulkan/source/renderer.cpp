@@ -8,6 +8,9 @@ namespace ngen::vulkan {
 
     //! \brief  Releases all resources currently allocated by the renderer.
     void Renderer::dispose() {
+        m_imageAvailable.dispose();
+        m_renderFinished.dispose();
+        m_commandPool.dispose();
         m_context.dispose();
     }
 
@@ -20,6 +23,65 @@ namespace ngen::vulkan {
             return false;
         }
 
+        if (m_commandPool.create(m_context, VK_QUEUE_GRAPHICS_BIT)) {
+            if (m_commandPool.allocateCommandBuffers(m_context.getSwapChain().getImageCount())) {
+                if (m_renderPass.create(m_context)) {
+                    if (m_imageAvailable.create(m_context.getDevice()) && m_renderFinished.create(m_context.getDevice())) {
+                        for (size_t i = 0; i < m_commandPool.size(); ++i) {
+                            recordCommandBuffer(i);
+                        }
+                        return true;
+                    }
+
+                    return true;
+                }
+            }
+        }
+
+        dispose();
         return false;
+    }
+
+    //! \brief Completes the current rendered frame and presents it to the user.
+    void Renderer::present() {
+        /*
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+        presentInfo.pResults = nullptr; // Optional
+
+        vkQueuePresentKHR(m_context.presentQueue, &presentInfo);
+        */
+    }
+
+    //! \brief Test function that performs some example rendering operations. This will eventually be removed
+    void Renderer::renderTest() {
+        uint32_t imageIndex;
+
+        if (m_context.getSwapChain().acquireNextImage(m_imageAvailable, VK_NULL_HANDLE, &imageIndex)) {
+            VkSubmitInfo submitInfo{};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+            VkSemaphore waitSemaphores[] = {m_imageAvailable};
+            VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+            submitInfo.waitSemaphoreCount = 1;
+            submitInfo.pWaitSemaphores = waitSemaphores;
+            submitInfo.pWaitDstStageMask = waitStages;
+
+
+//            if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+//                // TODO: Handle error
+//            }
+        }
+    }
+
+    void Renderer::recordCommandBuffer(size_t index) {
+        if (m_renderPass.begin(m_commandPool, index)) {
+            m_renderPass.draw(3, 1, 0, 0);
+
+            m_renderPass.end();
+        }
     }
 }

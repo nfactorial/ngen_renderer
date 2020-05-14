@@ -27,6 +27,8 @@ namespace ngen::vulkan {
         bool create(PhysicalDevice &physicalDevice, WindowSurface &surface, size_t extensionCount, const char **requiredExtensions);
         void dispose();
 
+        void waitIdle() const;
+
         [[nodiscard]] VkQueue getPresentationQueue() const;
         [[nodiscard]] VkQueue getGraphicsQueue() const;
 

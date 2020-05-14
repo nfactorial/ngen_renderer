@@ -12,6 +12,7 @@
 namespace ngen::vulkan {
     class Device;
     class CommandPool;
+    class VulkanContext;
 
     class RenderPass {
     public:
@@ -22,7 +23,7 @@ namespace ngen::vulkan {
         RenderPass& operator=(const RenderPass &other) = delete;
 
         void dispose();
-        [[nodiscard]] bool create(Device &device);
+        [[nodiscard]] bool create(const VulkanContext &context);
 
         [[nodiscard]] bool begin(const CommandPool &commandPool, size_t bufferIndex);
         void end();
@@ -30,6 +31,8 @@ namespace ngen::vulkan {
         operator VkRenderPass() const;  // NOLINT
 
         static const VkRenderPass kInvalidHandle;
+
+        void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
     private:
         VkCommandBuffer m_commandBuffer;

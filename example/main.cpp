@@ -78,23 +78,23 @@ int main(int argc, char **argv) {
             printf("%s\n", SDL_GetError());
         } else {
             ngen::vulkan::Renderer renderer;
-            renderer.initialize(window, kApplicationTitle);
 
-            printf("Loading shader data\n");
+            if (renderer.initialize(window, kApplicationTitle)) {
+                printf("Renderer initialized successfully\n");
 
-            auto vertexSource = loadFile("./shaders/vert.spv");
-            auto fragmentSource = loadFile("./shaders/frag.spv");
+                printf("Loading shader data\n");
 
-            printf("Creating shaders\n");
+                auto vertexSource = loadFile("./shaders/vert.spv");
+                auto fragmentSource = loadFile("./shaders/frag.spv");
 
-            ngen::vulkan::Shader vertexShader;
-            ngen::vulkan::Shader fragmentShader;
+                printf("Creating shaders\n");
 
-            ngen::vulkan::CommandPool pool;
-            pool.allocateCommandBuffers(24);
+                ngen::vulkan::Shader vertexShader;
+                ngen::vulkan::Shader fragmentShader;
 
-            vertexShader.create(renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length);
-            fragmentShader.create(renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length);
+                vertexShader.create(renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length);
+                fragmentShader.create(renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length);
+            }
 
             printf("main entry point\n");
 

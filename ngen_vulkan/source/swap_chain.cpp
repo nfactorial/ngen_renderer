@@ -85,6 +85,7 @@ namespace ngen::vulkan {
         printf("Successfully created swap chain for rendering.\n");
 
         m_device = device;
+        m_imageFormat = createInfo.imageFormat;
 
         extractImages();
 
@@ -117,6 +118,25 @@ namespace ngen::vulkan {
         extent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, extent.height));
 
         return extent;
+    }
+
+    //! \brief Attempts to acquire the next image in the swap chain for rendering.
+    //! \param semaphore [in] - The semaphore to be used
+    //! \param fence [in] - The fence to be used.
+    //! \param imageIndex [out] - Pointer to an integer that will receive the index of the image.
+    //! \returns <em>True</em> if the request processed successfully otherwise false.
+    bool SwapChain::acquireNextImage(VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex) {
+        return acquireNextImage(UINT64_MAX, semaphore, fence, imageIndex);
+    }
+
+    //! \brief Attempts to acquire the next image in the swap chain for rendering.
+    //! \param timeout [in] - The timeout to wait for an image.
+    //! \param semaphore [in] - The semaphore to be used
+    //! \param fence [in] - The fence to be used.
+    //! \param imageIndex [out] - Pointer to an integer that will receive the index of the image.
+    //! \returns <em>True</em> if the request processed successfully otherwise false.
+    bool SwapChain::acquireNextImage(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex) {
+        return VK_SUCCESS == vkAcquireNextImageKHR(m_device, m_handle, timeout, semaphore, fence, imageIndex);
     }
 
     //! \brief Retrieves a list of images from the swap chain.

@@ -11,7 +11,8 @@ namespace {
 
 namespace ngen::vulkan {
     VulkanContext::VulkanContext()
-    : m_handle(VK_NULL_HANDLE) {
+    : m_handle(VK_NULL_HANDLE)
+    , m_physicalDevice(nullptr) {
     }
 
     VulkanContext::~VulkanContext() {
@@ -26,6 +27,8 @@ namespace ngen::vulkan {
             m_windowSurface.dispose();
 
             vkDestroyInstance(m_handle, nullptr);
+
+            m_physicalDevice = nullptr;
             m_handle = VK_NULL_HANDLE;
         }
     }
@@ -61,19 +64,16 @@ namespace ngen::vulkan {
         std::vector<VkExtensionProperties> extensions(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        printf("Listing extensions:\n");
-        for (const auto &extension : extensions) {
-            printf("\t%s\n", extension.extensionName);
-        }
-
         if (createInstance(applicationName)) {
             if (m_windowSurface.initialize(m_handle, window)) {
-                PhysicalDevice *physicalDevice = selectDevice(m_windowSurface);
-                if (physicalDevice && m_device.create(*physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
-                    m_swapChain.initialize(*physicalDevice, m_windowSurface);
+                m_physicalDevice = selectDevice(m_windowSurface);
+                if (m_physicalDevice && m_device.create(*m_physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
+                    m_swapChain.initialize(*m_physicalDevice, m_windowSurface);
                     if (m_swapChain.create(m_device, m_windowSurface)) {
                         return true;
                     }
+
+                    m_physicalDevice = nullptr;
 
                     printf("Failed to create swap chain.");
                 } else {

@@ -16,7 +16,7 @@ namespace ngen::vulkan {
     //! \brief Releases all resources currently referenced by this object.
     void CommandPool::dispose() {
         if (m_device != VK_NULL_HANDLE && m_handle != VK_NULL_HANDLE) {
-            if (m_commandBuffers.size() != 0) {
+            if (!m_commandBuffers.empty()) {
                 vkFreeCommandBuffers(m_device, m_handle, m_commandBuffers.size(), m_commandBuffers.data());
                 m_commandBuffers.clear();
             }
@@ -29,24 +29,25 @@ namespace ngen::vulkan {
     }
 
     //! \brief Prepares the command pool for use with the specified device and queue.
-    bool CommandPool::create(const Device &device, const PhysicalDevice &physicalDevice, VkQueueFlags queueFlags) {
-        return create(device, physicalDevice, queueFlags, 0);
+    bool CommandPool::create(const VulkanContext &context, VkQueueFlags queueFlags) {
+        return create(context, queueFlags, 0);
     }
 
     //! \brief Prepares the command pool for use with the specified device and queue along with specified creation flags.
-    bool CommandPool::create(const Device &device, const PhysicalDevice &physicalDevice, VkQueueFlags queueFlags, int flags) {
+    bool CommandPool::create(const VulkanContext &context, VkQueueFlags queueFlags, int flags) {
         VkCommandPoolCreateInfo poolInfo{};
 
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = physicalDevice.findQueueFamily(queueFlags);
+        poolInfo.queueFamilyIndex = context.getPhysicalDevice()->findQueueFamily(queueFlags);
         poolInfo.flags = flags;
 
-        const auto result = vkCreateCommandPool(device, &poolInfo, nullptr, &m_handle);
-        if ( result != VK_SUCCESS) {
+        const auto result = vkCreateCommandPool(context.getDevice(), &poolInfo, nullptr, &m_handle);
+        if (result != VK_SUCCESS) {
             printf("Failed to create command pool: %s.\n", getResultString(result));
             return false;
         }
 
+        m_device = context.getDevice();
         return true;
     }
 
@@ -55,7 +56,11 @@ namespace ngen::vulkan {
     //! \param count [in] - The number of command buffers to be allocated.
     //! \returns True if the specified number of command buffers created successfully otherwise false.
     bool CommandPool::allocateCommandBuffers(size_t count) {
-        if (m_commandBuffers.size() != 0) {
+        if (m_device == VK_NULL_HANDLE) {
+
+        }
+        printf("Attempting to create %d command buffers...\n", int(count));
+        if (!m_commandBuffers.empty()) {
             vkFreeCommandBuffers(m_device, m_handle, m_commandBuffers.size(), m_commandBuffers.data());
             m_commandBuffers.clear();
         }
@@ -75,7 +80,7 @@ namespace ngen::vulkan {
             return false;
         }
 
-        return false;
+        return true;
     }
 
     //! \brief Begins the recording of a specified command buffer within the pool.

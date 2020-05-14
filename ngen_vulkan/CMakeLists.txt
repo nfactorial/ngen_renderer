@@ -6,6 +6,7 @@ set(SOURCE_FILES
     source/platform.cpp
     source/device.cpp
     source/shader.cpp
+    source/semaphore.cpp
     source/renderer.cpp
     source/swap_chain.cpp
     source/render_pass.cpp
@@ -22,6 +23,7 @@ set(INCLUDE_FILES
     include/shader.h
     include/renderer.h
     include/swap_chain.h
+    include/semaphore.h
     include/render_pass.h
     include/command_pool.h
     include/physical_device.h
