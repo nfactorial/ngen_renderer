@@ -47,6 +47,7 @@ endif()
 
 add_executable(example
     main.cpp
+    render.cpp
 )
 
 target_include_directories(example PUBLIC

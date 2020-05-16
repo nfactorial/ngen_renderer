@@ -33,6 +33,8 @@ namespace ngen::vulkan {
 
         [[nodiscard]] size_t size() const;
 
+        const VkCommandBuffer& operator[](size_t index) const;
+
         operator VkCommandPool() const;  // NOLINT
 
     private:
@@ -46,6 +48,10 @@ namespace ngen::vulkan {
     //! \returns The number of command buffers contained within the pool.
     inline size_t CommandPool::size() const {
         return m_commandBuffers.size();
+    }
+
+    inline const VkCommandBuffer& CommandPool::operator[](size_t index) const {
+        return m_commandBuffers[index];
     }
 
     inline CommandPool::operator VkCommandPool() const {

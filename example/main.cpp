@@ -1,46 +1,17 @@
 
 #include <cstdio>
-#include <fstream>
 
 #include <SDL.h>
-#include <SDL_main.h>
 #include <SDL_syswm.h>
-#include <SDL_vulkan.h>
 #include <SDL_video.h>
 
-#include <renderer.h>
-#include <shader.h>
-#include <command_pool.h>
+#include "render.h"
 
 namespace {
     const int SCREEN_WIDTH = 640;
     const int SCREEN_HEIGHT = 480;
 
     const char* kApplicationTitle = "nGen - Vulkan Test";
-
-    struct FileData {
-        size_t length;
-        std::unique_ptr<char[]> ptr;
-    };
-
-    FileData loadFile(const char *fileName) {
-        FileData result = {0, nullptr};
-
-        std::ifstream file(fileName, std::ios::ate | std::ios::binary);
-        if (!file.is_open()) {
-            printf("Could not find shader source \"%s\".\n", fileName);
-            return result;
-        }
-
-        result.length = static_cast<size_t>(file.tellg());
-        result.ptr = std::make_unique<char[]>(result.length);
-
-        file.seekg(0);
-        file.read(result.ptr.get(), result.length);
-        file.close();
-
-        return result;
-    }
 }
 
 void processEvent(const SDL_Event &event, bool &running) {
@@ -77,24 +48,9 @@ int main(int argc, char **argv) {
             printf("Failed to create window for testing.\n");
             printf("%s\n", SDL_GetError());
         } else {
-            ngen::vulkan::Renderer renderer;
+            example::Render render;
 
-            if (renderer.initialize(window, kApplicationTitle)) {
-                printf("Renderer initialized successfully\n");
-
-                printf("Loading shader data\n");
-
-                auto vertexSource = loadFile("./shaders/vert.spv");
-                auto fragmentSource = loadFile("./shaders/frag.spv");
-
-                printf("Creating shaders\n");
-
-                ngen::vulkan::Shader vertexShader;
-                ngen::vulkan::Shader fragmentShader;
-
-                vertexShader.create(renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length);
-                fragmentShader.create(renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length);
-            }
+            render.initialize(window, kApplicationTitle);
 
             printf("main entry point\n");
 
@@ -106,12 +62,12 @@ int main(int argc, char **argv) {
                     processEvent(event, running);
                 }
 
-                renderer.renderTest();
+                render.render();
 
                 SDL_Delay(1);
             }
 
-            renderer.dispose();
+            render.dispose();
 
             SDL_DestroyWindow(window);
         }
