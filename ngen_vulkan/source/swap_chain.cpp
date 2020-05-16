@@ -78,7 +78,7 @@ namespace ngen::vulkan {
             //createInfo.pQueueFamilyIndices = queueFamilyIndices;
         }
 
-        VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_handle);
+        const VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {
             printf("Failed to create SwapChain: %s\n", getResultString(result));
             return false;

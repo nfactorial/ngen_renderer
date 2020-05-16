@@ -41,6 +41,8 @@ namespace ngen::vulkan {
         poolInfo.queueFamilyIndex = context.getPhysicalDevice()->findQueueFamily(queueFlags);
         poolInfo.flags = flags;
 
+        printf("Command queue for queueFamilyIndex %d\n", poolInfo.queueFamilyIndex);
+
         const auto result = vkCreateCommandPool(context.getDevice(), &poolInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {
             printf("Failed to create command pool: %s.\n", getResultString(result));
