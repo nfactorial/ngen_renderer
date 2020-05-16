@@ -86,7 +86,6 @@ namespace ngen::vulkan {
     }
 
     //! \brief Begins the recording of a specified command buffer within the pool.
-    //! \remarks It is left to the caller to invoke vkEndCommandBuffer once they have finished with the command buffer.
     //! \returns The handle to the command pool or VK_NULL_HANDLE if recording failed to begin.
     VkCommandBuffer CommandPool::begin(size_t index) const {
         if (index < m_commandBuffers.size()) {
@@ -103,7 +102,9 @@ namespace ngen::vulkan {
         return VK_NULL_HANDLE;
     }
 
+    //! \brief Signals the end of recording for a specified buffer within the pool.
+    //! \param index [in] - Index of the command buffer whose command recording is being ended.
     void CommandPool::end(size_t index) const {
-        vkEndCommandBuffer(m_commandBuffers[index]);    // Might want commands spanning render passes, we shouldn't be in control of this
+        vkEndCommandBuffer(m_commandBuffers[index]);
     }
 }
