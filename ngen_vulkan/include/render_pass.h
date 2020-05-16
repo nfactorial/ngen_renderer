@@ -26,18 +26,16 @@ namespace ngen::vulkan {
         void dispose();
         [[nodiscard]] bool create(const VulkanContext &context);
 
-        [[nodiscard]] bool begin(const VulkanContext &context, const CommandPool &commandPool, VkFramebuffer frameBuffer, size_t bufferIndex);
-        void end();
+        [[nodiscard]] bool begin(const VulkanContext &context, VkCommandBuffer commandBuffer, VkFramebuffer frameBuffer);
+        void end(VkCommandBuffer commandBuffer);
 
         operator VkRenderPass() const;  // NOLINT
 
         static const VkRenderPass kInvalidHandle;
 
-        void bind(const Pipeline &pipeline);
-        void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+        void draw(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
     private:
-        VkCommandBuffer m_commandBuffer;
         VkRenderPass m_handle;
         VkDevice m_device;
     };

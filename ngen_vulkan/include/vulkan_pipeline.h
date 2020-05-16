@@ -26,6 +26,8 @@ namespace ngen::vulkan {
         [[nodiscard]] VkPipelineLayout getLayout() const;
         [[nodiscard]] VkPipeline getPipeline() const;
 
+        void bind(VkCommandBuffer commandBuffer) const;
+
     private:
         VkPipelineViewportStateCreateInfo m_viewportState;
         VkPipelineLayoutCreateInfo m_createInfo;

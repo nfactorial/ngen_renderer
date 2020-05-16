@@ -100,4 +100,8 @@ namespace ngen::vulkan {
 
         return VK_NULL_HANDLE;
     }
+
+    void CommandPool::end(size_t index) const {
+        vkEndCommandBuffer(m_commandBuffers[index]);    // Might want commands spanning render passes, we shouldn't be in control of this
+    }
 }

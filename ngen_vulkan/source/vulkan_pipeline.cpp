@@ -166,4 +166,10 @@ namespace ngen::vulkan {
 
         return true;
     }
+
+    //! \brief Binds the pipeline to the specified command buffer.
+    //! \param commandBuffer [in] - The command buffer the pipeline should be bound to.
+    void Pipeline::bind(VkCommandBuffer commandBuffer) const {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+    }
 }
