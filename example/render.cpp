@@ -125,18 +125,24 @@ namespace example {
     }
 
     void Render::render() {
-        m_renderer.beginFrame(m_imageAvailable, m_commandPool);
+        static bool done = false;
+        if (!done) {    // TEMP: Just draw the first frame for now
+            m_renderer.beginFrame(m_imageAvailable, m_commandPool);
 
-        m_renderer.endFrame(m_renderFinished);
+            m_renderer.endFrame(m_renderFinished);
+
+            done = true;
+        }
     }
 
     void Render::recordCommandBuffer(size_t index) {
-        auto commandBuffer = m_commandPool.begin(index);
+        const auto commandBuffer = m_commandPool.begin(index);
         if (commandBuffer != VK_NULL_HANDLE) {
-            if (m_renderPass.begin(m_renderer.getContext(), commandBuffer, m_frameBuffers[index])) {
-                m_pipeline.bind(commandBuffer);
+            if (m_renderPass.begin(m_renderer.getContext().getSwapChain().getExtent(), commandBuffer, m_frameBuffers[index])) {
+                m_pipeline.bind(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-                m_renderPass.draw(commandBuffer, 3, 1, 0, 0);
+                vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
                 m_renderPass.end(commandBuffer);
             }
 

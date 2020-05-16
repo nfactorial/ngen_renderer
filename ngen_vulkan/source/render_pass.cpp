@@ -43,6 +43,15 @@ namespace ngen::vulkan {
         colorAttachmentRef.attachment = 0;
         colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+        VkSubpassDependency dependency {};
+
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
         VkSubpassDescription subpass{};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpass.colorAttachmentCount = 1;
@@ -55,6 +64,8 @@ namespace ngen::vulkan {
         renderPassInfo.pAttachments = &colorAttachment;
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
 
         if (vkCreateRenderPass(context.getDevice(), &renderPassInfo, nullptr, &m_handle) != VK_SUCCESS) {
             printf("Failed to create render pass");
@@ -66,11 +77,11 @@ namespace ngen::vulkan {
     }
 
     //! \brief Begins the command recording using a command buffer contained within the supplied command pool.
-    //! \param commandPool [in] - The command pool that contains the command buffer to be used.
-    //! \param commandBuffer [in] - Index of the buffer to be used within the command pool.
+    //! \param extent [in] - The rendering extents to be used for the render pass.
+    //! \param commandBuffer [in] - The command buffer we will be rendering to.
     //! \param frameBuffer [in] - The frame buffer we will be rendering to.
     //! \returns <em>True</em> if the render pass began successfully otherwise <em>false</em>.
-    bool RenderPass::begin(const VulkanContext &context, VkCommandBuffer commandBuffer, VkFramebuffer frameBuffer) {
+    bool RenderPass::begin(const VkExtent2D &extent, VkCommandBuffer commandBuffer, VkFramebuffer frameBuffer) const {
         if (m_handle == kInvalidHandle || commandBuffer == VK_NULL_HANDLE || frameBuffer == VK_NULL_HANDLE) {
             return false;
         }
@@ -84,7 +95,7 @@ namespace ngen::vulkan {
         renderPassInfo.renderPass = m_handle;
         renderPassInfo.framebuffer = frameBuffer;
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = context.getSwapChain().getExtent();
+        renderPassInfo.renderArea.extent = extent;
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
@@ -96,9 +107,5 @@ namespace ngen::vulkan {
     //! \brief Informs the render pass that the recording of render commands has completed.
     void RenderPass::end(VkCommandBuffer commandBuffer) {
         vkCmdEndRenderPass(commandBuffer);
-    }
-
-    void RenderPass::draw(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
-        vkCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 }
