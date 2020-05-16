@@ -1,16 +1,13 @@
 
 #include "render_pass.h"
-#include "command_pool.h"
 #include "vulkan_context.h"
-#include "vulkan_pipeline.h"
 #include "device.h"
 
 namespace ngen::vulkan {
     const VkRenderPass RenderPass::kInvalidHandle = 0l;
 
     RenderPass::RenderPass()
-    : m_commandBuffer(VK_NULL_HANDLE)
-    , m_handle(kInvalidHandle)
+    : m_handle(kInvalidHandle)
     , m_device(nullptr) {
     }
 
@@ -70,23 +67,16 @@ namespace ngen::vulkan {
 
     //! \brief Begins the command recording using a command buffer contained within the supplied command pool.
     //! \param commandPool [in] - The command pool that contains the command buffer to be used.
-    //! \param bufferIndex [in] - Index of the buffer to be used within the command pool.
+    //! \param commandBuffer [in] - Index of the buffer to be used within the command pool.
+    //! \param frameBuffer [in] - The frame buffer we will be rendering to.
     //! \returns <em>True</em> if the render pass began successfully otherwise <em>false</em>.
-    bool RenderPass::begin(const VulkanContext &context, const CommandPool &commandPool, VkFramebuffer frameBuffer, size_t bufferIndex) {
-        if (m_handle == kInvalidHandle || m_commandBuffer != VK_NULL_HANDLE) {
-            return false;   // Not initialized or already started
-        }
-
-        // TODO: This gets us up and running, but means we can't be used multiple times concurrently. Have the caller
-        //  pass in some storage object for us (eg. RenderPassContext) to store data non-locally.
-        //  Alternatively, we shouldn't be in control of when the command buffer is started/ended.
-        m_commandBuffer = commandPool.begin(bufferIndex);
-        if (m_commandBuffer == VK_NULL_HANDLE) {
-            return false;   // Failed to start
+    bool RenderPass::begin(const VulkanContext &context, VkCommandBuffer commandBuffer, VkFramebuffer frameBuffer) {
+        if (m_handle == kInvalidHandle || commandBuffer == VK_NULL_HANDLE || frameBuffer == VK_NULL_HANDLE) {
+            return false;
         }
 
         // TODO: Clears, swap-chains, graphics pipelines etc. need to be configurable
-        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+        VkClearValue clearColor = {1.0f, 1.0f, 0.0f, 1.0f};
 
         // https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Command_buffers
         VkRenderPassBeginInfo renderPassInfo{};
@@ -98,28 +88,17 @@ namespace ngen::vulkan {
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
-        vkCmdBeginRenderPass(m_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         return true;
     }
 
     //! \brief Informs the render pass that the recording of render commands has completed.
-    void RenderPass::end() {
-        if (m_commandBuffer != VK_NULL_HANDLE) {
-            vkCmdEndRenderPass(m_commandBuffer);
-            vkEndCommandBuffer(m_commandBuffer);    // Might want commands spanning render passes, we shouldn't be in control of this
-
-            m_commandBuffer = VK_NULL_HANDLE;
-        }
-
-        // TODO: Need to be able to execute it
+    void RenderPass::end(VkCommandBuffer commandBuffer) {
+        vkCmdEndRenderPass(commandBuffer);
     }
 
-    void RenderPass::bind(const Pipeline &pipeline) {
-        vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getPipeline());
-    }
-
-    void RenderPass::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
-        vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    void RenderPass::draw(VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
+        vkCmdDraw(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 }

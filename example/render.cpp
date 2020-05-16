@@ -131,11 +131,16 @@ namespace example {
     }
 
     void Render::recordCommandBuffer(size_t index) {
-        if (m_renderPass.begin(m_renderer.getContext(), m_commandPool, m_frameBuffers[index], index)) {
-            m_renderPass.bind(m_pipeline);
-            m_renderPass.draw(3, 1, 0, 0);
+        auto commandBuffer = m_commandPool.begin(index);
+        if (commandBuffer != VK_NULL_HANDLE) {
+            if (m_renderPass.begin(m_renderer.getContext(), commandBuffer, m_frameBuffers[index])) {
+                m_pipeline.bind(commandBuffer);
 
-            m_renderPass.end();
+                m_renderPass.draw(commandBuffer, 3, 1, 0, 0);
+                m_renderPass.end(commandBuffer);
+            }
+
+            m_commandPool.end(index);
         }
     }
 }

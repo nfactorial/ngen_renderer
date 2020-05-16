@@ -30,6 +30,7 @@ namespace ngen::vulkan {
         [[nodiscard]] bool allocateCommandBuffers(size_t count);
 
         [[nodiscard]] VkCommandBuffer begin(size_t index) const;
+        void end(size_t index) const;
 
         [[nodiscard]] size_t size() const;
 
