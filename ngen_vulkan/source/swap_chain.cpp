@@ -4,6 +4,8 @@
 #include "physical_device.h"
 #include "device.h"
 #include "vulkan_error.h"
+#include "vulkan_context.h"
+#include "render_pass.h"
 
 namespace ngen::vulkan {
     SwapChain::SwapChain()
@@ -92,6 +94,36 @@ namespace ngen::vulkan {
         if (!createImageViews()) {
             dispose();
             return false;
+        }
+
+        return true;
+    }
+
+    //! \brief Creates a set of frame buffer objects and appends them to a supplied collection.
+    //! \param renderPass [in] - The render pass the frame buffers will be used by.
+    //! \param frameBuffers [in/out] - Collection where the frame buffers will be added.
+    //! \returns <em>True</em> if the frame buffers were created successfully otherwise <em>false</em>.
+    bool SwapChain::createFrameBuffers(const RenderPass &renderPass, std::vector<VkFramebuffer> &frameBuffers) const {
+        frameBuffers.reserve(frameBuffers.size() + m_imageViews.size());
+
+        for (size_t i = 0; i < m_imageViews.size(); ++i) {
+            VkFramebufferCreateInfo createInfo {};
+
+            createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            createInfo.renderPass = renderPass;
+            createInfo.attachmentCount = 1;
+            createInfo.pAttachments = &m_imageViews[i];
+            createInfo.width = m_extent.width;
+            createInfo.height = m_extent.height;
+            createInfo.layers = 1;
+
+            VkFramebuffer result;
+            if (vkCreateFramebuffer(m_device, &createInfo, nullptr, &result) != VK_SUCCESS) {
+                printf("Failed to create frame buffer %d\n", i);
+                return false;
+            }
+
+            frameBuffers.push_back(result);
         }
 
         return true;

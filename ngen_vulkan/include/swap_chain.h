@@ -13,6 +13,8 @@
 namespace ngen::vulkan {
     class PhysicalDevice;
     class WindowSurface;
+    class VulkanContext;
+    class RenderPass;
     class Device;
 
     class SwapChain {
@@ -42,6 +44,8 @@ namespace ngen::vulkan {
         [[nodiscard]] size_t getImageCount() const;
 
         [[nodiscard]] const VkExtent2D& getExtent() const;
+
+        [[nodiscard]] bool createFrameBuffers(const RenderPass &renderPass, std::vector<VkFramebuffer> &frameBuffers) const;
 
     private:
         [[nodiscard]] const VkExtent2D& chooseExtent(int width, int height);

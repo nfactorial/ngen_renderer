@@ -11,6 +11,7 @@
 
 namespace ngen::vulkan {
     class Device;
+    class Pipeline;
     class CommandPool;
     class VulkanContext;
 
@@ -25,13 +26,14 @@ namespace ngen::vulkan {
         void dispose();
         [[nodiscard]] bool create(const VulkanContext &context);
 
-        [[nodiscard]] bool begin(const VulkanContext &context, const CommandPool &commandPool, size_t bufferIndex);
+        [[nodiscard]] bool begin(const VulkanContext &context, const CommandPool &commandPool, VkFramebuffer frameBuffer, size_t bufferIndex);
         void end();
 
         operator VkRenderPass() const;  // NOLINT
 
         static const VkRenderPass kInvalidHandle;
 
+        void bind(const Pipeline &pipeline);
         void draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
     private:

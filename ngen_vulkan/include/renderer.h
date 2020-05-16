@@ -8,6 +8,11 @@
 #include "semaphore.h"
 
 namespace ngen::vulkan {
+    class Semaphore;
+
+    //! \brief It may be that 'Renderer' is too high level of a name for this object. And perhaps this is wrapped into
+    //!  the 'Context' object in the future. This would streamline some of the code, as it is turning out to simply
+    //!  be a proxy to the context object at the moment.
     class Renderer {
     public:
         Renderer();
@@ -19,25 +24,19 @@ namespace ngen::vulkan {
         void dispose();
         bool initialize(SDL_Window *window, const char *applicationName);
 
-        void present();
-
-        void renderTest();
+        void beginFrame(const Semaphore &imageAvailable, const CommandPool &commandPool);
+        void endFrame(const Semaphore &renderFinished);
 
         [[nodiscard]] Device& getDevice();
         [[nodiscard]] const Device& getDevice() const;
 
-    private:
-        void recordCommandBuffer(size_t index);
+        [[nodiscard]] VulkanContext& getContext();
+        [[nodiscard]] const VulkanContext& getContext() const;
 
     private:
+        uint32_t        m_imageIndex;
         bool            m_initialized;
         VulkanContext   m_context;
-        CommandPool     m_commandPool;
-
-        // The renderer should not be in control of these next items, they are here for testing purposes.
-        Semaphore       m_imageAvailable;
-        Semaphore       m_renderFinished;
-        RenderPass      m_renderPass;
     };
 
     inline Device& Renderer::getDevice() {
@@ -46,6 +45,14 @@ namespace ngen::vulkan {
 
     inline const Device& Renderer::getDevice() const {
         return m_context.getDevice();
+    }
+
+    inline VulkanContext& Renderer::getContext() {
+        return m_context;
+    }
+
+    inline const VulkanContext& Renderer::getContext() const {
+        return m_context;
     }
 }
 

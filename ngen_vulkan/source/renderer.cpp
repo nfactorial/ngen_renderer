@@ -1,5 +1,6 @@
 
 #include "renderer.h"
+#include "semaphore.h"
 
 namespace ngen::vulkan {
     Renderer::Renderer()
@@ -13,10 +14,6 @@ namespace ngen::vulkan {
 
     //! \brief  Releases all resources currently allocated by the renderer.
     void Renderer::dispose() {
-        m_renderPass.dispose();
-        m_imageAvailable.dispose();
-        m_renderFinished.dispose();
-        m_commandPool.dispose();
         m_context.dispose();
 
         m_initialized = false;
@@ -31,29 +28,34 @@ namespace ngen::vulkan {
             return false;
         }
 
-        if (m_commandPool.create(m_context, VK_QUEUE_GRAPHICS_BIT)) {
-            if (m_commandPool.allocateCommandBuffers(m_context.getSwapChain().getImageCount())) {
-                if (m_renderPass.create(m_context)) {
-                    if (m_imageAvailable.create(m_context.getDevice()) && m_renderFinished.create(m_context.getDevice())) {
-                        for (size_t i = 0; i < m_commandPool.size(); ++i) {
-                            //recordCommandBuffer(i);
-                        }
+        m_initialized = true;
+        return true;
+    }
 
-                        m_initialized = true;
-                        return true;
-                    }
-                }
+    void Renderer::beginFrame(const Semaphore &imageAvailable, const CommandPool &commandPool) {
+        if (m_context.getSwapChain().acquireNextImage(imageAvailable, VK_NULL_HANDLE, &m_imageIndex)) {
+            VkSubmitInfo submitInfo{};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+            VkSemaphore waitSemaphores[] = {imageAvailable};
+            VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+            submitInfo.waitSemaphoreCount = 1;
+            submitInfo.pWaitSemaphores = waitSemaphores;
+            submitInfo.pWaitDstStageMask = waitStages;
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &commandPool[m_imageIndex];
+
+            if (vkQueueSubmit(m_context.getDevice().getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+                // TODO: Handle error
+                printf("vkQueueSubmit failed\n");
             }
         }
-
-        dispose();
-        return false;
     }
 
     //! \brief Completes the current rendered frame and presents it to the user.
-    void Renderer::present() {
+    void Renderer::endFrame(const Semaphore &renderFinished) {
         if (m_initialized) {
-            VkSemaphore signalSemaphores[] = {m_renderFinished};
+            VkSemaphore signalSemaphores[] = {renderFinished};
 
             VkPresentInfoKHR presentInfo{};
             presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -62,38 +64,13 @@ namespace ngen::vulkan {
             presentInfo.pWaitSemaphores = signalSemaphores;
             presentInfo.pResults = nullptr; // Optional
 
+            VkSwapchainKHR swapChains[] = {m_context.getSwapChain()};
+
+            presentInfo.swapchainCount = 1;
+            presentInfo.pSwapchains = swapChains;
+            presentInfo.pImageIndices = &m_imageIndex;
+
             vkQueuePresentKHR(m_context.getDevice().getGraphicsQueue(), &presentInfo);
-        }
-    }
-
-    //! \brief Test function that performs some example rendering operations. This will eventually be removed
-    void Renderer::renderTest() {
-        uint32_t imageIndex;
-
-        if (m_context.getSwapChain().acquireNextImage(m_imageAvailable, VK_NULL_HANDLE, &imageIndex)) {
-            VkSubmitInfo submitInfo{};
-            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-            VkSemaphore waitSemaphores[] = {m_imageAvailable};
-            VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-            submitInfo.waitSemaphoreCount = 1;
-            submitInfo.pWaitSemaphores = waitSemaphores;
-            submitInfo.pWaitDstStageMask = waitStages;
-
-            if (vkQueueSubmit(m_context.getDevice().getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-                // TODO: Handle error
-                printf("vkQueueSubmit failed\n");
-            }
-        }
-
-        present();
-    }
-
-    void Renderer::recordCommandBuffer(size_t index) {
-        if (m_renderPass.begin(m_context, m_commandPool, index)) {
-            m_renderPass.draw(3, 1, 0, 0);
-
-            m_renderPass.end();
         }
     }
 }

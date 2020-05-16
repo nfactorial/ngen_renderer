@@ -11,7 +11,9 @@
 
 // TODO: Need to add platform specific implementations
 namespace ngen::vulkan {
-    class Device;
+    class VulkanContext;
+    class RenderPass;
+    class Shader;
 
     class Pipeline {
     public:
@@ -19,18 +21,30 @@ namespace ngen::vulkan {
         ~Pipeline();
 
         void dispose();
-        [[nodiscard]] bool initialize(Device &device);
+        [[nodiscard]] bool initialize(const VulkanContext &context, const RenderPass &renderPass, const VkExtent2D &extent, const Shader &vertexShader, const Shader &fragmentShader);
 
-        operator VkPipelineLayout () const;
+        [[nodiscard]] VkPipelineLayout getLayout() const;
+        [[nodiscard]] VkPipeline getPipeline() const;
 
     private:
-        VkPipelineLayout m_instance;
+        VkPipelineViewportStateCreateInfo m_viewportState;
+        VkPipelineLayoutCreateInfo m_createInfo;
+        VkViewport m_viewport;
+        VkRect2D m_scissor;
+
+        VkPipelineLayout m_layout;
+        VkPipeline m_pipeline;
+
         VkDevice m_device;
     };
 
+    inline VkPipeline Pipeline::getPipeline() const {
+        return m_pipeline;
+    }
+
     //! \brief Conversion operator for VKPipelineLayout
-    inline Pipeline::operator VkPipelineLayout() const {
-        return m_instance;
+    inline VkPipelineLayout Pipeline::getLayout() const {
+        return m_layout;
     }
 }
 
