@@ -127,11 +127,11 @@ namespace example {
     void Render::render() {
         static bool done = false;
         if (!done) {    // TEMP: Just draw the first frame for now
-            if (m_renderer.beginFrame(m_imageAvailable, m_commandPool)) {
+            if (m_renderer.beginFrame(m_imageAvailable, m_renderFinished, m_commandPool)) {
                 m_renderer.endFrame(m_renderFinished);
             }
 
-            done = true;
+            //done = true;
         }
     }
 

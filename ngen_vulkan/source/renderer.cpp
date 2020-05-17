@@ -37,7 +37,7 @@ namespace ngen::vulkan {
     //! \param imageAvailable [in] - Semaphore to use when obtaining an image (this may be wrapped away in the future).
     //! \param commandPool [in] - The command pool containing the frame submissions.
     //! \returns <em>True</em> if the frame began successfully otherwise <em>false</em>.
-    bool Renderer::beginFrame(const Semaphore &imageAvailable, const CommandPool &commandPool) {
+    bool Renderer::beginFrame(const Semaphore &imageAvailable, const Semaphore &renderFinished, const CommandPool &commandPool) {
         if (!m_context.getSwapChain().acquireNextImage(imageAvailable, VK_NULL_HANDLE, &m_imageIndex)) {
             return false;
         }
@@ -46,12 +46,16 @@ namespace ngen::vulkan {
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         VkSemaphore waitSemaphores[] = {imageAvailable};
+        VkSemaphore signalSemaphores[] = {renderFinished};
+
         VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
         submitInfo.waitSemaphoreCount = 1;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandPool[m_imageIndex];
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
 
         if (vkQueueSubmit(m_context.getDevice().getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
             // TODO: Handle error
@@ -81,6 +85,7 @@ namespace ngen::vulkan {
             presentInfo.pImageIndices = &m_imageIndex;
 
             vkQueuePresentKHR(m_context.getDevice().getGraphicsQueue(), &presentInfo);
+            vkQueueWaitIdle(m_context.getDevice().getGraphicsQueue());  // TEMP
         }
     }
 }
