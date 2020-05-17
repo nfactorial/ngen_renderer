@@ -33,6 +33,7 @@ namespace ngen::vulkan {
         }
     }
 
+    //! \brief Debug method, outputs a list of supported extensions to the standard output.
     void VulkanContext::dumpExtensions() {
         uint32_t extensionCount;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -128,39 +129,13 @@ namespace ngen::vulkan {
         enumeratePhysicalDevices();
 
         for (auto &device : m_physicalDevices) {
-            if (isDeviceSuitable(device, surface)) {
+            if (device.isDeviceSuitable(surface)) {
                 printf("Selected device for rendering\n");
                 return &device;
             }
         }
 
         return nullptr;
-    }
-
-    //! \brief Determines whether or not the specified physical device is suitable for the application to use.
-    //! \param physicalDevice [in] - The physical device we are checking for compatability.
-    //! \param surface [in] - The window surface to be used for rendering.
-    //! \returns True if the device is suitable otherwise false.
-    bool VulkanContext::isDeviceSuitable(const PhysicalDevice &physicalDevice, WindowSurface &surface) {
-        const int graphicsQueue = physicalDevice.findQueueFamily(VK_QUEUE_GRAPHICS_BIT);
-        const int presentationQueue = physicalDevice.findPresentationQueue(surface);
-
-        if (-1 == graphicsQueue) {
-            printf("Unable to find graphics queue\n");
-            return false;
-        }
-
-        if (-1 == presentationQueue) {
-            printf("Unable to find presentation queue\n");
-            return false;
-        }
-
-        if (!physicalDevice.hasExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
-            printf("Device did not support the required swap-chain extension.\n");
-            return false;
-        }
-
-        return true;
     }
 
     //! \brief Obtains a list of physical devices supported by the host machine

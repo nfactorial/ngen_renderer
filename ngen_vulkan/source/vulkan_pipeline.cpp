@@ -10,15 +10,6 @@ namespace ngen::vulkan {
     : m_layout(VK_NULL_HANDLE)
     , m_pipeline(VK_NULL_HANDLE)
     , m_device(VK_NULL_HANDLE) {
-        memset(&m_createInfo, 0, sizeof(m_createInfo));
-
-        m_viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        m_viewportState.viewportCount = 1;
-        m_viewportState.pViewports = nullptr;
-        m_viewportState.scissorCount = 1;
-        m_viewportState.pScissors = nullptr;
-
-        m_createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     }
 
     Pipeline::~Pipeline() {

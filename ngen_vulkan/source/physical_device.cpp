@@ -20,6 +20,32 @@ namespace ngen::vulkan {
         enumerateExtensions();
     }
 
+    //! \brief Determines whether or not the specified physical device is suitable for the application to use.
+    //! \param physicalDevice [in] - The physical device we are checking for compatability.
+    //! \param surface [in] - The window surface to be used for rendering.
+    //! \returns True if the device is suitable otherwise false.
+    bool PhysicalDevice::isDeviceSuitable(const WindowSurface &surface) const {
+        const int graphicsQueue = findQueueFamily(VK_QUEUE_GRAPHICS_BIT);
+        const int presentationQueue = findPresentationQueue(surface);
+
+        if (-1 == graphicsQueue) {
+            printf("Unable to find graphics queue\n");
+            return false;
+        }
+
+        if (-1 == presentationQueue) {
+            printf("Unable to find presentation queue\n");
+            return false;
+        }
+
+        if (!hasExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+            printf("Device did not support the required swap-chain extension.\n");
+            return false;
+        }
+
+        return true;
+    }
+
     //! \brief Determines whether or not the physical device supports the specified extension.
     //! \param extensionName [in] - The name of the Vulkan extension to be checked.
     //! \returns True if the specified extension is supported by the physical device otherwise false.
@@ -78,7 +104,7 @@ namespace ngen::vulkan {
     //! \param physicalDevice [in] - The device whose available queues are to be checked.
     //! \param flags [in] - The flags of the particular queue we are to scan for.
     //! \returns Index of the requested queue within the device or -1 if it could not be found.
-    int PhysicalDevice::findPresentationQueue(WindowSurface &surface) const {
+    int PhysicalDevice::findPresentationQueue(const WindowSurface &surface) const {
         int index = 0;
         for (const auto &queueFamily : m_queueFamilies) {
             VkBool32 presentSupport = false;

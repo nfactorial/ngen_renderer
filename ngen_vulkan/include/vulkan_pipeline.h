@@ -29,11 +29,6 @@ namespace ngen::vulkan {
         void bind(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint) const;
 
     private:
-        VkPipelineViewportStateCreateInfo m_viewportState;
-        VkPipelineLayoutCreateInfo m_createInfo;
-        VkViewport m_viewport;
-        VkRect2D m_scissor;
-
         VkPipelineLayout m_layout;
         VkPipeline m_pipeline;
 

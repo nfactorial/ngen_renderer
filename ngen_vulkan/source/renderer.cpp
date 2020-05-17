@@ -32,27 +32,36 @@ namespace ngen::vulkan {
         return true;
     }
 
-    void Renderer::beginFrame(const Semaphore &imageAvailable, const CommandPool &commandPool) {
-        if (m_context.getSwapChain().acquireNextImage(imageAvailable, VK_NULL_HANDLE, &m_imageIndex)) {
-            VkSubmitInfo submitInfo{};
-            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-            VkSemaphore waitSemaphores[] = {imageAvailable};
-            VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-            submitInfo.waitSemaphoreCount = 1;
-            submitInfo.pWaitSemaphores = waitSemaphores;
-            submitInfo.pWaitDstStageMask = waitStages;
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &commandPool[m_imageIndex];
-
-            if (vkQueueSubmit(m_context.getDevice().getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-                // TODO: Handle error
-                printf("vkQueueSubmit failed\n");
-            }
+    //! \brief Informs the renderer that a frame submission is about to begin.
+    //! \param imageAvailable [in] - Semaphore to use when obtaining an image (this may be wrapped away in the future).
+    //! \param commandPool [in] - The command pool containing the frame submissions.
+    //! \returns <em>True</em> if the frame began successfully otherwise <em>false</em>.
+    bool Renderer::beginFrame(const Semaphore &imageAvailable, const CommandPool &commandPool) {
+        if (!m_context.getSwapChain().acquireNextImage(imageAvailable, VK_NULL_HANDLE, &m_imageIndex)) {
+            return false;
         }
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore waitSemaphores[] = {imageAvailable};
+        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandPool[m_imageIndex];
+
+        if (vkQueueSubmit(m_context.getDevice().getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+            // TODO: Handle error
+            printf("vkQueueSubmit failed\n");
+        }
+
+        return true;
     }
 
     //! \brief Completes the current rendered frame and presents it to the user.
+    //! \param renderFinished [in] - The semaphore to use when waiting for the swap operation.
     void Renderer::endFrame(const Semaphore &renderFinished) {
         if (m_initialized) {
             VkSemaphore signalSemaphores[] = {renderFinished};

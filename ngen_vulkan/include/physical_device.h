@@ -13,6 +13,7 @@
 
 namespace ngen::vulkan {
     class Device;
+    class WindowSurface;
 
     class PhysicalDevice {
     public:
@@ -24,9 +25,11 @@ namespace ngen::vulkan {
         [[nodiscard]] bool hasExtension(const char *extensionName) const;
 
         [[nodiscard]] int findQueueFamily(VkQueueFlags flags) const;
-        [[nodiscard]] int findPresentationQueue(WindowSurface &surface) const;
+        [[nodiscard]] int findPresentationQueue(const WindowSurface &surface) const;
 
         [[nodiscard]] VkPhysicalDevice getHandle() const;
+
+        [[nodiscard]] bool isDeviceSuitable(const WindowSurface &surface) const;
 
         operator VkPhysicalDevice() const; // NOLINT
 

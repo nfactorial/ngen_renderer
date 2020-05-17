@@ -104,7 +104,8 @@ namespace ngen::vulkan {
         return true;
     }
 
-    //! \brief Informs the render pass that the recording of render commands has completed.
+    //! \brief Informs the command buffer that recording with the render pass has completed.
+    //! \param commandBuffer [in] - The command buffer that has finished recording with ther render pass.
     void RenderPass::end(VkCommandBuffer commandBuffer) {
         vkCmdEndRenderPass(commandBuffer);
     }

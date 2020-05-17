@@ -39,7 +39,9 @@ namespace ngen::vulkan {
     //! \brief Attempts to create an instance of the specified physical device.
     //! \param physicalDevice [in] - The physical device we are to create an instance of.
     //! \param surface [in] - The window surface to be used for rendering.
-    //! \returns The created device or VK_NULL_HANDLE if one could not be created.
+    //! \param extensionCount [in] - Number of extensions in the supplied extension list.
+    //! \param requiredExtensions [in] - Pointer to list of extensions the application requires.
+    //! \returns <em>True</em> if the device created successfully otherwise <em>false</em>.
     bool Device::create(PhysicalDevice &physicalDevice, WindowSurface &surface, size_t extensionCount, const char **requiredExtensions) {
         float queuePriority = 1.0f;
 

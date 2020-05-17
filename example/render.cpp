@@ -127,9 +127,9 @@ namespace example {
     void Render::render() {
         static bool done = false;
         if (!done) {    // TEMP: Just draw the first frame for now
-            m_renderer.beginFrame(m_imageAvailable, m_commandPool);
-
-            m_renderer.endFrame(m_renderFinished);
+            if (m_renderer.beginFrame(m_imageAvailable, m_commandPool)) {
+                m_renderer.endFrame(m_renderFinished);
+            }
 
             done = true;
         }
