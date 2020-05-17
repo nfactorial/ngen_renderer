@@ -54,9 +54,9 @@ namespace ngen::vulkan {
     //! \brief Prepares the object for use by the application.
     //! \param window [in] - The handle of the applications main window.
     //! \param applicationName [in] - The name of the application.
-    //! \param debug [in] - If <em>True</em> vulkan will be created with validation layers.
+    //! \param enableValidation [in] - If <em>True</em> vulkan will be created with validation layers.
     //! \returns True if the object initialized successfully otherwise false.
-    bool VulkanContext::initialize(SDL_Window *window, const char *applicationName, bool debug) {
+    bool VulkanContext::initialize(SDL_Window *window, const char *applicationName, bool enableValidation) {
         if (m_handle != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;
@@ -68,7 +68,7 @@ namespace ngen::vulkan {
         std::vector<VkExtensionProperties> extensions(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        if (create(applicationName, debug)) {
+        if (create(applicationName, enableValidation)) {
             if (m_windowSurface.initialize(m_handle, window)) {
                 m_physicalDevice = selectDevice(m_windowSurface);
                 if (m_physicalDevice && m_device.create(*m_physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
@@ -98,21 +98,18 @@ namespace ngen::vulkan {
 
     //! \brief Creates the Vulkan instance for use by the application.
     //! \param applicationName [in] - The name associated with the running application.
-    //! \param debug [in] - If <em>True</em> vulkan will be created with validation layers.
+    //! \param enableValidation [in] - If <em>True</em> vulkan will be created with validation layers.
     //! \returns True if the instance was created successfully otherwise false.
-    bool VulkanContext::create(const char *applicationName, bool debug) {
-        return debug ? createDebug(applicationName) : createInstance(applicationName, 0, nullptr);
-    }
+    bool VulkanContext::create(const char *applicationName, bool enableValidation) {
+        if (enableValidation) {
+            if (!checkValidationLayerSupport()) {
+                return false;
+            }
 
-    //! \brief Creates the Vulkan instance with validation layers enabled.
-    //! \param applicationName [in] - The name associated with the running application.
-    //! \returns True if the instance was created successfully otherwise false.
-    bool VulkanContext::createDebug(const char *applicationName) {
-        if (!checkValidationLayerSupport()) {
-            return false;
+            return createInstance(applicationName, sizeof(kValidationLayers) / sizeof(kValidationLayers[0]), kValidationLayers);
         }
 
-        return createInstance(applicationName, sizeof(kValidationLayers) / sizeof(kValidationLayers[0]), kValidationLayers);
+        return createInstance(applicationName, 0, nullptr);
     }
 
     //! \brief Determines whether or not the specified validation layers are supported.
