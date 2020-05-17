@@ -15,7 +15,6 @@
 
 namespace ngen::vulkan {
     class PhysicalDevice;
-    class WindowSurface;
 
     //! \brief Maintains core information about the Vulkan rendering system.
     class VulkanContext {
@@ -44,8 +43,6 @@ namespace ngen::vulkan {
         bool createInstance(const char *applicationName);
 
         PhysicalDevice* selectDevice(WindowSurface &surface);
-
-        bool isDeviceSuitable(const PhysicalDevice &device, WindowSurface &surface);
 
         uint32_t enumeratePhysicalDevices();
 

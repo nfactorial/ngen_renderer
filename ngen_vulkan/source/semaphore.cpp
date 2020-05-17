@@ -22,6 +22,9 @@ namespace ngen::vulkan {
         }
     }
 
+    //! \brief Attempts to create a new Semaphore object.
+    //! \param device [in] - The device to use when creating the semaphore.
+    //! \returns <em>True</em> if the semaphore created successfully otherwise <em>false</em>.
     bool Semaphore::create(Device &device) {
         if (m_handle != VK_NULL_HANDLE) {
             return false;
