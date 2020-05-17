@@ -1,4 +1,4 @@
-#include "vulkan_pipeline.h"
+#include "pipeline.h"
 #include "vulkan_context.h"
 #include "vulkan_error.h"
 #include "render_pass.h"

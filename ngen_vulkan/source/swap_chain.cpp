@@ -113,8 +113,8 @@ namespace ngen::vulkan {
             createInfo.renderPass = renderPass;
             createInfo.attachmentCount = 1;
             createInfo.pAttachments = &m_imageViews[i];
-            createInfo.width = m_extent.width;
-            createInfo.height = m_extent.height;
+            createInfo.width = m_capabilities.currentExtent.width;
+            createInfo.height = m_capabilities.currentExtent.height;
             createInfo.layers = 1;
 
             VkFramebuffer result;
@@ -144,10 +144,10 @@ namespace ngen::vulkan {
             return m_capabilities.currentExtent;
         }
 
-        m_extent.width = std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, static_cast<uint32_t>(width)));
-        m_extent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, static_cast<uint32_t>(height)));
+        m_capabilities.currentExtent.width = std::max(m_capabilities.minImageExtent.width, std::min(m_capabilities.maxImageExtent.width, static_cast<uint32_t>(width)));
+        m_capabilities.currentExtent.height = std::max(m_capabilities.minImageExtent.height, std::min(m_capabilities.maxImageExtent.height, static_cast<uint32_t>(height)));
 
-        return m_extent;
+        return m_capabilities.currentExtent;
     }
 
     //! \brief Attempts to acquire the next image in the swap chain for rendering.

@@ -1,7 +1,7 @@
 #ifndef EXAMPLE_RENDER
 #define EXAMPLE_RENDER
 
-#include <vulkan_pipeline.h>
+#include <pipeline.h>
 #include <command_pool.h>
 #include <render_pass.h>
 #include <semaphore.h>

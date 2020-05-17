@@ -57,7 +57,7 @@ namespace example {
     }
 
     bool Render::initialize(SDL_Window *window, const char *applicationName) {
-        if (!m_renderer.initialize(window, applicationName)) {
+        if (!m_renderer.initialize(window, applicationName, true)) {
             return false;
         }
 
