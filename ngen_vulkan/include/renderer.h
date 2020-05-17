@@ -24,7 +24,7 @@ namespace ngen::vulkan {
         void dispose();
         bool initialize(SDL_Window *window, const char *applicationName, bool enableValidation);
 
-        bool beginFrame(const Semaphore &imageAvailable, const CommandPool &commandPool);
+        bool beginFrame(const Semaphore &imageAvailable, const Semaphore &renderFinished, const CommandPool &commandPool);
         void endFrame(const Semaphore &renderFinished);
 
         [[nodiscard]] Device& getDevice();
