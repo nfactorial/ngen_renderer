@@ -7,6 +7,10 @@ namespace {
     const char *kEngineName = "nGen";
     const uint32_t kEngineVersion = VK_MAKE_VERSION(1, 0, 0);
     const uint32_t kVulkanSdkVersion = VK_API_VERSION_1_0;
+
+    const char* kValidationLayers[] = {
+        "VK_LAYER_KHRONOS_validation"
+    };
 }
 
 namespace ngen::vulkan {
@@ -48,12 +52,11 @@ namespace ngen::vulkan {
     }
 
     //! \brief Prepares the object for use by the application.
-    //! \param platformWindow [in] - The handle of the applications main window.
-    //! \param width [in] - The width of the window (in pixels).
-    //! \param height [in] - The height of the window (in pixels).
+    //! \param window [in] - The handle of the applications main window.
     //! \param applicationName [in] - The name of the application.
+    //! \param debug [in] - If <em>True</em> vulkan will be created with validation layers.
     //! \returns True if the object initialized successfully otherwise false.
-    bool VulkanContext::initialize(SDL_Window *window, const char *applicationName) {
+    bool VulkanContext::initialize(SDL_Window *window, const char *applicationName, bool debug) {
         if (m_handle != VK_NULL_HANDLE) {
             printf("VulkanContext already initialized\n");
             return false;
@@ -65,7 +68,7 @@ namespace ngen::vulkan {
         std::vector<VkExtensionProperties> extensions(extensionCount);
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-        if (createInstance(applicationName)) {
+        if (create(applicationName, debug)) {
             if (m_windowSurface.initialize(m_handle, window)) {
                 m_physicalDevice = selectDevice(m_windowSurface);
                 if (m_physicalDevice && m_device.create(*m_physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
@@ -95,9 +98,59 @@ namespace ngen::vulkan {
 
     //! \brief Creates the Vulkan instance for use by the application.
     //! \param applicationName [in] - The name associated with the running application.
+    //! \param debug [in] - If <em>True</em> vulkan will be created with validation layers.
     //! \returns True if the instance was created successfully otherwise false.
-    bool VulkanContext::createInstance(const char *applicationName) {
+    bool VulkanContext::create(const char *applicationName, bool debug) {
+        return debug ? createDebug(applicationName) : createInstance(applicationName, 0, nullptr);
+    }
+
+    //! \brief Creates the Vulkan instance with validation layers enabled.
+    //! \param applicationName [in] - The name associated with the running application.
+    //! \returns True if the instance was created successfully otherwise false.
+    bool VulkanContext::createDebug(const char *applicationName) {
+        if (!checkValidationLayerSupport()) {
+            return false;
+        }
+
+        return createInstance(applicationName, sizeof(kValidationLayers) / sizeof(kValidationLayers[0]), kValidationLayers);
+    }
+
+    //! \brief Determines whether or not the specified validation layers are supported.
+    //! \returns <em>True</em> if the validation layers are supported otherwise <em>false</em>.
+    bool VulkanContext::checkValidationLayerSupport() {
+        uint32_t layerCount;
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        for (const char* layerName : kValidationLayers) {
+            bool layerFound = false;
+
+            for (const auto& layerProperties : availableLayers) {
+                if (strcmp(layerName, layerProperties.layerName) == 0) {
+                    layerFound = true;
+                    break;
+                }
+            }
+
+            if (!layerFound) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    //! \brief Attempts to create the vulkan instance with the supplied information.
+    //! \param applicationName [in] - The name associated with the running application.
+    //! \param layerCount [in] - The number of layers specified in the layerNames parameters.
+    //! \param layerNames [in] - List of layers that should be enabled on the created device.
+    //! \returns True if the instance was created successfully otherwise false.
+    bool VulkanContext::createInstance(const char *applicationName, uint32_t layerCount, const char* const* layerNames) {
         VkApplicationInfo appInfo = {};
+
+        printf("Creating instance with %d layers\n", layerCount);
 
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = applicationName;
@@ -111,6 +164,8 @@ namespace ngen::vulkan {
         createInfo.pApplicationInfo = &appInfo;
         createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultVulkanExtensionCount;
         createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultVulkanExtensions;
+        createInfo.ppEnabledLayerNames = layerNames;
+        createInfo.enabledLayerCount = layerCount;
 
         const auto result = vkCreateInstance(&createInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {

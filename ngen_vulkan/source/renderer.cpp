@@ -23,8 +23,8 @@ namespace ngen::vulkan {
     //! \param window [in] - The window the renderer will present its content to.
     //! \param applicationName [in] - The name to be displayed in the application title bar.
     //! \returns <em>True</em> if the renderer initialized successfully otherwise <em>false</em>.
-    bool Renderer::initialize(SDL_Window *window, const char *applicationName) {
-        if (!m_context.initialize(window, applicationName)) {
+    bool Renderer::initialize(SDL_Window *window, const char *applicationName, bool debug) {
+        if (!m_context.initialize(window, applicationName, debug)) {
             return false;
         }
 

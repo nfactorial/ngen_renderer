@@ -68,12 +68,11 @@ namespace ngen::vulkan {
         VkFormat m_imageFormat;
 
         VkSwapchainKHR m_handle;
-        VkExtent2D m_extent;
         VkDevice m_device;
     };
 
     inline const VkExtent2D& SwapChain::getExtent() const {
-        return m_extent;
+        return m_capabilities.currentExtent;
     }
 
     inline VkFormat SwapChain::getImageFormat() const {

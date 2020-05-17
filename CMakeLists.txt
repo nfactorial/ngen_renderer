@@ -33,6 +33,11 @@ ELSE()
     message(STATUS ${Vulkan_LIBRARY})
 ENDIF()
 
+#IF (WIN32 OR MINGW)
+    add_subdirectory(ngen_directx12)
+#ENDIF()
+
 add_subdirectory(ngen_vulkan)
 add_subdirectory(ngen_display)
 add_subdirectory(example)
+

@@ -87,7 +87,7 @@ namespace ngen::vulkan {
         }
 
         // TODO: Clears, swap-chains, graphics pipelines etc. need to be configurable
-        VkClearValue clearColor = {1.0f, 1.0f, 0.0f, 1.0f};
+        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
 
         // https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Command_buffers
         VkRenderPassBeginInfo renderPassInfo{};

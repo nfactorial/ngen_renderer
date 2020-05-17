@@ -22,7 +22,7 @@ namespace ngen::vulkan {
         Renderer& operator=(const Renderer &other) = delete;
 
         void dispose();
-        bool initialize(SDL_Window *window, const char *applicationName);
+        bool initialize(SDL_Window *window, const char *applicationName, bool debug);
 
         bool beginFrame(const Semaphore &imageAvailable, const CommandPool &commandPool);
         void endFrame(const Semaphore &renderFinished);
