@@ -23,7 +23,7 @@ namespace ngen::vulkan {
         ~VulkanContext();
 
         void dispose();
-        [[nodiscard]] bool initialize(SDL_Window *window, const char *applicationName, bool debug);
+        [[nodiscard]] bool initialize(SDL_Window *window, const char *applicationName, bool enableValidation = false);
 
         bool onWindowResized();
 
@@ -40,10 +40,8 @@ namespace ngen::vulkan {
         static void dumpExtensions();
 
     private:
+        bool create(const char *applicationName, bool enableValidation);
         bool checkValidationLayerSupport();
-
-        bool create(const char *applicationName, bool debug);
-        bool createDebug(const char *applicationName);
 
         bool createInstance(const char *applicationName, uint32_t layerCount, const char* const* layerNames);
 
