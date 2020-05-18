@@ -7,6 +7,7 @@
 #include <semaphore.h>
 #include <renderer.h>
 #include <shader.h>
+#include <buffer.h>
 
 namespace example {
     class Render {
@@ -25,6 +26,7 @@ namespace example {
     private:
         std::vector<VkFramebuffer> m_frameBuffers;
 
+        ngen::vulkan::Buffer m_vertexBuffer;
         ngen::vulkan::Renderer m_renderer;
         ngen::vulkan::Shader m_vertexShader;
         ngen::vulkan::Shader m_fragmentShader;

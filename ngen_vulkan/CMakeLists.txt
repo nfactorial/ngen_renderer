@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 project(ngen_vulkan)
 
 set(SOURCE_FILES
+    source/buffer.cpp
     source/platform.cpp
     source/device.cpp
     source/shader.cpp
@@ -20,6 +21,7 @@ set(SOURCE_FILES
     source/vulkan_context.cpp)
 
 set(INCLUDE_FILES
+    include/buffer.h
     include/platform.h
     include/device.h
     include/shader.h

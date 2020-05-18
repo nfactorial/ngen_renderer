@@ -61,6 +61,12 @@ namespace ngen::vulkan {
         m_viewportState.viewportCount = 1;          // TODO: Support multiple viewports
         m_viewportState.pViewports = &m_viewport;   //
 
+        m_vertexInputInfo.pVertexAttributeDescriptions = m_attributes.data();
+        m_vertexInputInfo.vertexAttributeDescriptionCount = m_attributes.size();
+
+        m_vertexInputInfo.pVertexBindingDescriptions = m_bindings.data();
+        m_vertexInputInfo.vertexBindingDescriptionCount = m_bindings.size();
+
         ZeroItem(m_createInfo);
 
         m_createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
