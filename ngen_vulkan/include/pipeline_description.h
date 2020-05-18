@@ -1,8 +1,8 @@
 #ifndef NGEN_VULKAN_PIPELINE_DESCRIPTION
 #define NGEN_VULKAN_PIPELINE_DESCRIPTION
 
-#include <vulkan/vulkan.h>
 #include <vector>
+#include <vulkan/vulkan.h>
 
 namespace ngen::vulkan {
     class Shader;
@@ -20,10 +20,10 @@ namespace ngen::vulkan {
         PipelineDescription(const PipelineDescription &other) = default;
         PipelineDescription& operator=(const PipelineDescription &other) = default;
 
-        [[nodiscard]] const VkGraphicsPipelineCreateInfo& finalize(const RenderPass &renderPass);
+        [[nodiscard]] const VkGraphicsPipelineCreateInfo& finalize(const RenderPass &renderPass, VkPipelineLayout layout);
 
         PipelineDescription& setViewport(float x, float y, float width, float height, float minDepth, float maxDepth);
-        PipelineDescription& setScissor(float x, float y, const VkExtent2D &extent);
+        PipelineDescription& setScissor(int32_t x, int32_t y, const VkExtent2D &extent);
 
         PipelineDescription& addVertexBinding(uint32_t stride);
         PipelineDescription& addInstanceBinding(uint32_t stride);
@@ -44,6 +44,7 @@ namespace ngen::vulkan {
 
     private:
         PipelineDescription& addShader(const Shader &shader, VkShaderStageFlagBits flags, const char *mainFunc);
+        PipelineDescription& addBinding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate);
 
     private:
         std::vector<VkVertexInputAttributeDescription> m_attributes;

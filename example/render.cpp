@@ -1,6 +1,7 @@
 
 #include <fstream>
 #include "render.h"
+#include "pipeline_description.h"
 
 namespace {
     struct FileData {
@@ -81,7 +82,16 @@ namespace example {
             return false;
         }
 
-        if (!m_pipeline.initialize(m_renderer.getContext(), m_renderPass, m_renderer.getContext().getSwapChain().getExtent(), m_vertexShader, m_fragmentShader)) {
+        ngen::vulkan::PipelineDescription description;
+
+        const auto &extent = m_renderer.getContext().getSwapChain().getExtent();
+
+        description.addVertexShader(m_vertexShader)
+                   .addFragmentShader(m_fragmentShader)
+                   .setViewport(0.0f, 0.0f, float(extent.width), float(extent.height), 0.0f, 1.0f)
+                   .setScissor(0, 0, extent);
+
+        if (!m_pipeline.create(m_renderer.getContext(), m_renderPass, description)) {
             printf("Failed to create pipeline\n");
 
             dispose();

@@ -6,27 +6,62 @@
 
 namespace {
     const char *kDefaultMainFunction = "main";
+
+    template <typename TType> void ZeroItem(TType &item) {
+        memset(&item, 0, sizeof(TType));
+    }
 }
 
 namespace ngen::vulkan {
     PipelineDescription::PipelineDescription() {
+        ZeroItem(m_colorBlendAttachment);
+        ZeroItem(m_inputAssembly);
+        ZeroItem(m_vertexInputInfo);
+        ZeroItem(m_multisampling);
+        ZeroItem(m_colorBlending);
+        ZeroItem(m_rasterizer);
+        ZeroItem(m_viewportState);
+        ZeroItem(m_pipelineLayoutInfo);
+        ZeroItem(m_viewport);
+        ZeroItem(m_scissor);
+
+        m_vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+        m_inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        m_inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+        m_colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+        m_multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        m_multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        m_viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+
         m_rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        m_rasterizer.depthClampEnable = VK_FALSE;
-        m_rasterizer.rasterizerDiscardEnable = VK_FALSE;
         m_rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         m_rasterizer.lineWidth = 1.0f;
         m_rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         m_rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-        m_rasterizer.depthBiasEnable = VK_FALSE;
+
+        m_colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+        m_colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        m_colorBlending.logicOp = VK_LOGIC_OP_COPY;
+        m_colorBlending.attachmentCount = 1;
+        m_colorBlending.pAttachments = &m_colorBlendAttachment;
     }
 
     //! \brief Complete the configuration of pipeline information.
     //! \param renderPass [in] - The render pass the pipeline is associated with.
     //! \returns Description of the graphics pipeline described by the object.
-    const VkGraphicsPipelineCreateInfo& PipelineDescription::finalize(const RenderPass &renderPass) {
+    const VkGraphicsPipelineCreateInfo& PipelineDescription::finalize(const RenderPass &renderPass, VkPipelineLayout layout) {
         memset(&m_createInfo, 0, sizeof(m_createInfo));
 
         m_viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        m_viewportState.viewportCount = 1;          // TODO: Support multiple viewports
+        m_viewportState.pViewports = &m_viewport;   //
+
+        ZeroItem(m_createInfo);
 
         m_createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         m_createInfo.stageCount = m_shaderStages.size();
@@ -37,7 +72,7 @@ namespace ngen::vulkan {
         m_createInfo.pRasterizationState = &m_rasterizer;
         m_createInfo.pMultisampleState = &m_multisampling;
         m_createInfo.pColorBlendState = &m_colorBlending;
-        m_createInfo.layout = m_layout;
+        m_createInfo.layout = layout;
         m_createInfo.renderPass = renderPass;
         m_createInfo.subpass = 0;
         m_createInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -72,7 +107,7 @@ namespace ngen::vulkan {
     //! \param y [in] - Offset within the viewport of the scissor.
     //! \param extent [in] - Extents of the scissor rectangle.
     //! \returns Reference to self allowing for call chaining.
-    PipelineDescription& PipelineDescription::setScissor(float x, float y, const VkExtent2D &extent) {
+    PipelineDescription& PipelineDescription::setScissor(int32_t x, int32_t y, const VkExtent2D &extent) {
         m_scissor.offset.x = x;
         m_scissor.offset.y = y;
         m_scissor.extent = extent;
@@ -134,11 +169,15 @@ namespace ngen::vulkan {
     //! \param stride [in] - The number of bytes between successive instance data.
     //! \returns Reference to self allowing for call chaining.
     PipelineDescription& PipelineDescription::addInstanceBinding(uint32_t stride) {
+        return addBinding(uint32_t(m_bindings.size()), stride, VK_VERTEX_INPUT_RATE_INSTANCE);
+    }
+
+    PipelineDescription& PipelineDescription::addBinding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate) {
         VkVertexInputBindingDescription description{};
 
-        description.binding = uint32_t(m_bindings.size());
+        description.binding = binding;
         description.stride = stride;
-        description.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+        description.inputRate = inputRate;
 
         m_bindings.push_back(description);
 
@@ -200,7 +239,7 @@ namespace ngen::vulkan {
     //! \param mainFunc [in] - Name of the shaders entry point function to be executed.
     //! \returns Reference to self allowing for call chaining.
     PipelineDescription& PipelineDescription::addShader(const Shader &shader, VkShaderStageFlagBits flags, const char *mainFunc) {
-        VkPipelineShaderStageCreateInfo stageInfo;
+        VkPipelineShaderStageCreateInfo stageInfo{};
 
         stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         stageInfo.stage = flags;
