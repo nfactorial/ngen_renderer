@@ -18,7 +18,7 @@ namespace ngen::display {
     class DisplayPort {
     public:
         DisplayPort();
-        ~DisplayPort();
+        ~DisplayPort() = default;
 
         void renderContent();
         void createRay(Ray &ray, float x, float y);

@@ -14,10 +14,6 @@ namespace ngen::display {
         m_children.reserve(DEFAULT_CHILD_CAPACITY);
     }
 
-    DisplayPort::~DisplayPort() {
-        //
-    }
-
     //! \brief Renders the contents of tbe display port.
     void DisplayPort::renderContent() {
         for (auto child : m_children) {

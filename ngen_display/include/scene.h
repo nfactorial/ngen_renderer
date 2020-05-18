@@ -1,5 +1,5 @@
 
-#define NGEN_NODE_MAXIMUM_NAME_LENGTH       64;
+constexpr size_t NGEN_NODE_MAXIMUM_NAME_LENGTH = 64;
 
 // TODO: Scene and node definitions should be in their own modules, this file is just for thoughts during development.
 class Scene {
@@ -84,4 +84,3 @@ inline const Vector3 Node::getRight() const {
 inline const Vector3 Node::getForward() const {
     return m_transform[2];
 }
-
