@@ -1,4 +1,5 @@
 #include "pipeline.h"
+#include "pipeline_description.h"
 #include "vulkan_context.h"
 #include "vulkan_error.h"
 #include "render_pass.h"
@@ -42,6 +43,8 @@ namespace ngen::vulkan {
             printf("Pipeline already initialized\n");
             return false;
         }
+
+        PipelineDescription description;
 
         m_device = context.getDevice();
 
@@ -147,9 +150,28 @@ namespace ngen::vulkan {
         createInfo.subpass = 0;
         createInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        const auto result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline);
+        const auto &testInfo =
+                description.addVertexShader(vertexShader)
+                           .addFragmentShader(fragmentShader)
+                           .setViewport(0.0f, 0.0f, extent.width, extent.height, 0.0f, 1.0f)
+                           .setScissor(0.0f, 0.0f, extent)
+                           .finalize(renderPass);
+
+        const auto result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &testInfo, nullptr, &m_pipeline);
         if (result != VK_SUCCESS) {
             printf("Failed to create pipeline: %s\n", getResultString(result));
+
+            dispose();
+            return false;
+        }
+
+        return true;
+    }
+
+    bool Pipeline::create(const PipelineDescription &description) {
+        const auto result = vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &description.getCreateInfo(), nullptr, &m_pipeline);
+        if (result != VK_SUCCESS) {
+            printf("Failed to create pipeline with supplied description: %s\n", getResultString(result));
 
             dispose();
             return false;

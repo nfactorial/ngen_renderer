@@ -11,6 +11,7 @@
 
 // TODO: Need to add platform specific implementations
 namespace ngen::vulkan {
+    class PipelineDescription;
     class VulkanContext;
     class RenderPass;
     class Shader;
@@ -21,6 +22,8 @@ namespace ngen::vulkan {
         ~Pipeline();
 
         void dispose();
+        [[nodiscard]] bool create(const PipelineDescription &description);
+
         [[nodiscard]] bool initialize(const VulkanContext &context, const RenderPass &renderPass, const VkExtent2D &extent, const Shader &vertexShader, const Shader &fragmentShader);
 
         [[nodiscard]] VkPipelineLayout getLayout() const;
