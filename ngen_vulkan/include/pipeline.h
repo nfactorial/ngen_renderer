@@ -22,9 +22,7 @@ namespace ngen::vulkan {
         ~Pipeline();
 
         void dispose();
-        [[nodiscard]] bool create(const PipelineDescription &description);
-
-        [[nodiscard]] bool initialize(const VulkanContext &context, const RenderPass &renderPass, const VkExtent2D &extent, const Shader &vertexShader, const Shader &fragmentShader);
+        [[nodiscard]] bool create(const VulkanContext &context, const RenderPass &renderPass, PipelineDescription &description);
 
         [[nodiscard]] VkPipelineLayout getLayout() const;
         [[nodiscard]] VkPipeline getPipeline() const;

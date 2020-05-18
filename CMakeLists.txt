@@ -40,4 +40,3 @@ ENDIF()
 add_subdirectory(ngen_vulkan)
 add_subdirectory(ngen_display)
 add_subdirectory(example)
-
