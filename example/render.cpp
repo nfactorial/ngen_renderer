@@ -27,6 +27,28 @@ namespace {
 
         return result;
     }
+
+    struct Vec2 {
+        float x;
+        float y;
+    };
+
+    struct Vec3 {
+        float x;
+        float y;
+        float z;
+    };
+
+    struct Vertex {
+        Vec2 position;
+        Vec3 color;
+    };
+
+    static const Vertex s_Vertices[] = {
+        {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, 0.5f,}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f, 0.5f,}, {0.0f, 0.0f, 1.0f}}
+    };
 }
 
 namespace example {
@@ -46,6 +68,7 @@ namespace example {
         }
         m_frameBuffers.clear();
 
+        m_vertexBuffer.dispose();
         m_imageAvailable.dispose();
         m_renderFinished.dispose();
 
@@ -82,11 +105,23 @@ namespace example {
             return false;
         }
 
+        if (!m_vertexBuffer.createVertexBuffer(m_renderer.getContext(), sizeof(s_Vertices))) {
+            printf("Failed to allocate vertex buffer\n");
+            dispose();
+            return false;
+        }
+
+        memcpy(m_vertexBuffer.mapMemory(), s_Vertices, sizeof(s_Vertices));
+        m_vertexBuffer.unmapMemory();
+
         ngen::vulkan::PipelineDescription description;
 
         const auto &extent = m_renderer.getContext().getSwapChain().getExtent();
 
-        description.addVertexShader(m_vertexShader)
+        description.addVertexBinding(sizeof(Vertex))
+                   .addAttribute(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position))
+                   .addAttribute(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color))
+                   .addVertexShader(m_vertexShader)
                    .addFragmentShader(m_fragmentShader)
                    .setViewport(0.0f, 0.0f, float(extent.width), float(extent.height), 0.0f, 1.0f)
                    .setScissor(0, 0, extent);
@@ -135,13 +170,8 @@ namespace example {
     }
 
     void Render::render() {
-        static bool done = false;
-        if (!done) {    // TEMP: Just draw the first frame for now
-            if (m_renderer.beginFrame(m_imageAvailable, m_renderFinished, m_commandPool)) {
-                m_renderer.endFrame(m_renderFinished);
-            }
-
-            //done = true;
+        if (m_renderer.beginFrame(m_imageAvailable, m_renderFinished, m_commandPool)) {
+            m_renderer.endFrame(m_renderFinished);
         }
     }
 
@@ -149,6 +179,7 @@ namespace example {
         const auto commandBuffer = m_commandPool.begin(index);
         if (commandBuffer != VK_NULL_HANDLE) {
             if (m_renderPass.begin(m_renderer.getContext().getSwapChain().getExtent(), commandBuffer, m_frameBuffers[index])) {
+                m_vertexBuffer.bind(commandBuffer);
                 m_pipeline.bind(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
                 vkCmdDraw(commandBuffer, 3, 1, 0, 0);
