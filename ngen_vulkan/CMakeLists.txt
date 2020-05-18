@@ -16,6 +16,7 @@ set(SOURCE_FILES
     source/vulkan_error.cpp
     source/window_surface.cpp
     source/pipeline.cpp
+        source/pipeline_description.cpp
     source/vulkan_context.cpp)
 
 set(INCLUDE_FILES
@@ -33,6 +34,8 @@ set(INCLUDE_FILES
     include/vulkan_error_def.h
     include/window_surface.h
     include/pipeline.h
+        include/pipeline_description.h
+    include/vertex_attribute.h
     include/vulkan_context.h)
 
 add_definitions(-DNOMINMAX)
