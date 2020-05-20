@@ -12,6 +12,10 @@ the rendering interface into higher order objects for use by the game itself.
 nGen uses SDL to manage system initialization, you must have SDL available on your system in-order for
 compilation to succeed. Please see https://www.libsdl.org/
 
+The Vulkan rendering library itself also has a temporary dependency on SDL for creating the display
+surface. A goal is to remove this dependency so the Vulkan renderer can be used with or without
+SDL in the future.  
+
 # SDL2
 The renderer currently makes use of SDL2, please ensure the SDL2 SDK has been installed and ensure
 the environment variable SDL2DIR points to the install location of the SDL2 SDK.
