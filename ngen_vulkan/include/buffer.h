@@ -22,6 +22,7 @@ namespace ngen::vulkan {
 
         void dispose();
 
+        [[nodiscard]] bool createUniformBuffer(const VulkanContext &context, size_t length);
         [[nodiscard]] bool createVertexBuffer(const VulkanContext &context, size_t length);
 
         void bind(VkCommandBuffer commandBuffer);
@@ -34,7 +35,9 @@ namespace ngen::vulkan {
 
     private:
         bool create(const VulkanContext &context, size_t length, VkBufferUsageFlags usage, VkSharingMode sharingMode);
+
         bool allocate(const VulkanContext &context);
+        bool allocate(const VulkanContext &context, uint32_t properties);
 
     private:
         size_t m_size;

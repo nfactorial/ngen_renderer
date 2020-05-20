@@ -4,6 +4,7 @@
 
 ////////////////////////////////////////////////////////////////////////////
 
+#include <vector>
 #include "platform.h"
 
 
@@ -29,7 +30,10 @@ namespace ngen::vulkan {
 
         void bind(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint) const;
 
+        [[nodiscard]] bool addDescriptorSet(VkDescriptorSetLayout descriptorSet);
+
     private:
+        std::vector<VkDescriptorSetLayout> m_descriptorSets;
         VkPipelineLayout m_layout;
         VkPipeline m_pipeline;
 

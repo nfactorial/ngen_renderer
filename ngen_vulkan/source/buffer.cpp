@@ -41,6 +41,14 @@ namespace ngen::vulkan {
         return create(context, length, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
     }
 
+    //! \brief Creates a buffer object suitable for holding uniform data.
+    //! \param context [in] - The vulkan context we will be associated with.
+    //! \param length [in] - The length (in bytes) of the buffer.
+    //! \returns <em>True</em> if the buffer created successfully otherwise <em>false</em>.
+    bool Buffer::createUniformBuffer(const VulkanContext &context, size_t length) {
+        return create(context, length, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    }
+
     //! \brief Creates a new buffer using the supplied description.
     //! \param context [in] - The Vulkan context we will be associated with.
     //! \param length [in] - The length (in bytes) of the buffer.
@@ -112,8 +120,14 @@ namespace ngen::vulkan {
     //! \param context [in] - The Vulkan context we will be associated with.
     //! \returns <em>True</em> if the memory allocated successfully otherwise <em>false</em>.
     bool Buffer::allocate(const VulkanContext &context) {
-        const uint32_t properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        return allocate(context, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    }
 
+    //! \brief Attempts to allocate memory for use with the buffer object using the supplied memory properties.
+    //! \param context [in] - The Vulkan context we will be associated with.
+    //! \param properties [in] - Properties of the memory block to be allocated.
+    //! \returns <em>True</em> if the memory allocated successfully otherwise <em>false</em>.
+    bool Buffer::allocate(const VulkanContext &context, const uint32_t properties) {
         VkMemoryRequirements memoryRequirements;
         vkGetBufferMemoryRequirements(context.getDevice(), m_handle, &memoryRequirements);
 
@@ -121,7 +135,7 @@ namespace ngen::vulkan {
         vkGetPhysicalDeviceMemoryProperties(*context.getPhysicalDevice(), &memoryProperties);
 
         for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
-            if (memoryRequirements.memoryTypeBits & (1 << i) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            if (memoryRequirements.memoryTypeBits & (1u << i) && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                 VkMemoryAllocateInfo allocInfo{};
 
                 allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;

@@ -31,6 +31,24 @@ namespace ngen::vulkan {
         m_device = VK_NULL_HANDLE;
     }
 
+    //! \brief Adds a descriptor set to the pipeline information, must be called before the pipeline is created.
+    //! \param descriptorSet [in] - The descriptor set to be added to the pipeline definition.
+    //! \returns <em>True</em> if the descriptor set was added successfully otherwise <em>false</em>.
+    bool Pipeline::addDescriptorSet(VkDescriptorSetLayout descriptorSet) {
+        if (VK_NULL_HANDLE != m_layout) {
+            printf("Cannot add descriptor set after pipeline has been created.\n");
+            return false;
+        }
+
+        if (VK_NULL_HANDLE == descriptorSet) {
+            printf("A valid descriptor set must be provided.");
+            return false;
+        }
+
+        m_descriptorSets.push_back(descriptorSet);
+        return true;
+    }
+
     //! \brief Creates the pipeline using the supplied description.
     //! \param context [in] - The vulkan context the pipeline will belong to.
     //! \param renderPass [in] - The render pass to be used with the pipeline.
@@ -47,7 +65,8 @@ namespace ngen::vulkan {
         // TODO: See createGraphicsPipeline in: https://vulkan-tutorial.com/code/14_command_buffers.cpp
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0;
+        pipelineLayoutInfo.setLayoutCount = m_descriptorSets.size();
+        pipelineLayoutInfo.pSetLayouts = m_descriptorSets.data();
         pipelineLayoutInfo.pushConstantRangeCount = 0;
 
         if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS) {

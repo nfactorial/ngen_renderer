@@ -21,7 +21,6 @@ namespace ngen::vulkan {
         ZeroItem(m_colorBlending);
         ZeroItem(m_rasterizer);
         ZeroItem(m_viewportState);
-        ZeroItem(m_pipelineLayoutInfo);
         ZeroItem(m_viewport);
         ZeroItem(m_scissor);
 
