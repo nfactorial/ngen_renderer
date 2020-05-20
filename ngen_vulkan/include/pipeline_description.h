@@ -58,7 +58,6 @@ namespace ngen::vulkan {
         VkPipelineColorBlendStateCreateInfo m_colorBlending;
         VkPipelineRasterizationStateCreateInfo m_rasterizer;
         VkPipelineViewportStateCreateInfo m_viewportState;
-        VkPipelineLayoutCreateInfo m_pipelineLayoutInfo;
         VkViewport m_viewport;
         VkRect2D m_scissor;
 
