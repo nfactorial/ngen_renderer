@@ -85,6 +85,7 @@ namespace ngen::vulkan {
     }
 
     //! \brief Binds the buffer to the supplied command buffer.
+    //! \param commandBuffer [in] - The command buffer to bind with.
     void Buffer::bind(VkCommandBuffer commandBuffer) {
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_handle, &offset);
