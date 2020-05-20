@@ -92,6 +92,7 @@ namespace ngen::vulkan {
     }
 
     //! \brief Attempts to map the entire buffer memory for access by the application.
+    //! \remarks Once you have finished with the mapped memory, you must call Buffer::unmapMemory().
     //! \param context [in] - The Vulkan context we will be associated with.
     //! \returns Pointer to the mapped memory or <em>nullptr</em> if it could not be accessed.
     void* Buffer::mapMemory() {
@@ -99,6 +100,7 @@ namespace ngen::vulkan {
     }
 
     //! \brief Attempts to map a subset of the buffer memory for use by the application.
+    //! \remarks Once you have finished with the mapped memory, you must call Buffer::unmapMemory().
     //! \param context [in] - The Vulkan context we will be associated with.
     //! \param offset [in] - Offset within the buffer memory the mapping will begin.
     //! \param length [in] - The number of bytes to be mapped.
