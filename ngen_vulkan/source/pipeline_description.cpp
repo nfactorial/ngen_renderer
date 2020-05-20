@@ -159,24 +159,21 @@ namespace ngen::vulkan {
     //! \param stride [in] - The number of bytes between successive vertex data.
     //! \returns Reference to self allowing for call chaining.
     PipelineDescription& PipelineDescription::addVertexBinding(uint32_t stride) {
-        VkVertexInputBindingDescription description{};
-
-        description.binding = uint32_t(m_bindings.size());
-        description.stride = stride;
-        description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        m_bindings.push_back(description);
-
-        return *this;
+        return addBinding(m_bindings.size(), stride, VK_VERTEX_INPUT_RATE_VERTEX);
     }
 
     //! \brief Adds an input binding that spans each instance.
     //! \param stride [in] - The number of bytes between successive instance data.
     //! \returns Reference to self allowing for call chaining.
     PipelineDescription& PipelineDescription::addInstanceBinding(uint32_t stride) {
-        return addBinding(uint32_t(m_bindings.size()), stride, VK_VERTEX_INPUT_RATE_INSTANCE);
+        return addBinding(m_bindings.size(), stride, VK_VERTEX_INPUT_RATE_INSTANCE);
     }
 
+    //! \brief Adds an input binding using the supplied rate.
+    //! \param binding [in] - Binding index the input is associated with.
+    //! \param stride [in] - The distance (in bytes) between each input.
+    //! \param inputRate [in] - How frequent the data is bound.
+    //! \returns Reference to self allowing for call chaining.
     PipelineDescription& PipelineDescription::addBinding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate) {
         VkVertexInputBindingDescription description{};
 
