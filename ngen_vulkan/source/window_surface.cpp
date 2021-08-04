@@ -33,6 +33,8 @@ namespace ngen::vulkan {
     //! \param hwnd [in] - The handle to the system window used for presentation.
     //! \returns True if the object initialized successfully otherwise false.
     bool WindowSurface::initialize(VkInstance instance, SDL_Window *window) {
+        // ngen::vulkan::platform::initializeSurfaceCreateInfo(createInfo, window->)
+
         if (!ngen::vulkan::platform::createSurface(window, instance, &m_surface)) {
             printf("Failed to create window surface\n");
             return false;

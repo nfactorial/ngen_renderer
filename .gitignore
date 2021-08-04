@@ -1,5 +1,6 @@
 # No need to store IDE settings
 .idea
+.vscode
 .DS_Store
 
 # Build directory is not under version control
