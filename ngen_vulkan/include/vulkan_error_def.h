@@ -34,7 +34,6 @@ VULKAN_ERROR(VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT, "VK_ERROR_IN
 VULKAN_ERROR(VK_ERROR_FRAGMENTATION_EXT, "A descriptor pool creation has failed due to fragmentation");
 VULKAN_ERROR(VK_ERROR_NOT_PERMITTED_EXT, "A requested extension is not permitted in this context");
 VULKAN_ERROR(VK_ERROR_INVALID_DEVICE_ADDRESS_EXT, "A buffer creation failed because the requested address is not available");
-VULKAN_ERROR(VK_RESULT_RANGE_SIZE, "VK_RESULT_RANGE_SIZE");
 VULKAN_ERROR(VK_RESULT_MAX_ENUM, "VK_RESULT_MAX_ENUM");
 
 #undef VULKAN_ERROR

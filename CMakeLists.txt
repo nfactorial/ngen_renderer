@@ -1,42 +1,34 @@
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.24)
 
-enable_testing()
+project(ngen_renderer LANGUAGES CXX)
 
-MESSAGE(STATUS "SDL2DIR: $ENV{SDL2DIR}")
-MESSAGE(STATUS "SDL2_PATH: $ENV{SDL2_PATH}")
-MESSAGE(STATUS "VULKAN_SDK: $ENV{VULKAN_SDK}")
-MESSAGE(STATUS "MOLTEN_VK: $ENV{MOLTEN_VK}")
+option(NGEN_BUILD_EXAMPLE   "Build the example application." ON)
+option(NGEN_BUILD_DISPLAY   "Build the ngen_display library." ON)
+# The DirectX 12 backend is an unfinished stub that does not compile yet.
+option(NGEN_BUILD_DIRECTX12 "Build the (incomplete) DirectX 12 backend." OFF)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_OSX_ARCHITECTURES x86_64)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-add_definitions(-DGTEST_LANG_CXX11)
-
-add_subdirectory(external)
-
-option(NGEN_BUILD_TESTS "Build unit tests." ON)
-
-project(ngen_renderer)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake_modules")
-
-find_package(Threads REQUIRED)
+# Vulkan comes from the LunarG SDK; FindVulkan locates it through the VULKAN_SDK environment variable.
 find_package(Vulkan REQUIRED)
 
-IF (NOT Vulkan_FOUND)
-    message(FATAL_ERROR "Could not find Vulkan library")
-ELSE()
-    message(STATUS ${Vulkan_LIBRARY})
-ENDIF()
-
-#IF (WIN32 OR MINGW)
-    add_subdirectory(ngen_directx12)
-#ENDIF()
+include(cmake/dependencies.cmake)
 
 add_subdirectory(ngen_vulkan)
-add_subdirectory(ngen_display)
-add_subdirectory(example)
+
+if (NGEN_BUILD_DISPLAY)
+    add_subdirectory(ngen_display)
+endif()
+
+if (NGEN_BUILD_DIRECTX12)
+    if (NOT WIN32)
+        message(FATAL_ERROR "NGEN_BUILD_DIRECTX12 is only supported on Windows.")
+    endif()
+    add_subdirectory(ngen_directx12)
+endif()
+
+if (NGEN_BUILD_EXAMPLE)
+    add_subdirectory(example)
+endif()
