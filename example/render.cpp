@@ -95,8 +95,13 @@ namespace example {
         printf("Creating shaders\n");
 
         // TODO: Still early days for the API, this is a little messy right now
-        m_vertexShader.create(m_renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length);
-        m_fragmentShader.create(m_renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length);
+        if (!m_vertexShader.create(m_renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length) ||
+            !m_fragmentShader.create(m_renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length)) {
+            printf("Failed to create shaders\n");
+
+            dispose();
+            return false;
+        }
 
         if (!m_renderPass.create(m_renderer.getContext())) {
             printf("Failed to create render pass\n");

@@ -119,7 +119,7 @@ namespace ngen::vulkan {
 
             VkFramebuffer result;
             if (vkCreateFramebuffer(m_device, &createInfo, nullptr, &result) != VK_SUCCESS) {
-                printf("Failed to create frame buffer %d\n", i);
+                printf("Failed to create frame buffer %zu\n", i);
                 return false;
             }
 

@@ -8,3 +8,6 @@ build
 cmake-build*
 *.spv
 *.dll
+
+# Local CMake presets
+CMakeUserPresets.json

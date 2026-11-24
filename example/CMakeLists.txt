@@ -1,81 +1,51 @@
-project(ngen_render_example)
-
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-
-find_library(Threads REQUIRED)
-
-# add_definitions(-DSDL_MAIN_NEEDED)
-add_definitions(-DSDL_MAIN_HANDLED)
-add_definitions(-DSDL_STATIC)
-
-find_package(SDL2 REQUIRED)
-
-MESSAGE( "SDL2 LIBRARY = ${SDL2_LIBRARY}")
-MESSAGE( "SDL2_INCLUDE_DIRS = " ${SDL2_INCLUDE_DIRS})
-
-if(APPLE)
-    find_library(COCOA_LIBRARY Cocoa REQUIRED)
-    find_library(IOKIT_LIBRARY IoKit REQUIRED)
-    find_library(METAL_LIBRARY Metal REQUIRED)
-    find_library(QUARTZ_LIBRARY QuartzCore REQUIRED)
-    find_library(IOSURFACE_LIBRARY IoSurface REQUIRED)
-    find_library(CORE_FOUNDATION_LIBRARY CoreFoundation REQUIRED)
-    find_library(MoltenVK PATHS "$ENV{MOLTEN_VK}/macOS")
-
-    mark_as_advanced(
-            ${COCOA_LIBRARY}
-            ${IOKIT_LIBRARY}
-            ${METAL_LIBRARY}
-            ${QUARTZ_LIBRARY}
-            ${IOSURFACE_LIBRARY}
-            ${CORE_FOUNDATION_LIBRARY}
-    )
-
-    add_definitions(-DVK_USE_PLATFORM_MACOS_MVK)
-
-    MESSAGE("MoltenVK = ${MoltenVK}")
-    MESSAGE("MOLTEN_VK = ${MOLTEN_VK}")
-elseif(MSVC)
-    set(CMAKE_CXX_FLAGS_DEBUG_INIT "/D_DEBUG /MTd /Zi /Ob0 /Od /RTC1")
-    set(CMAKE_CXX_FLAGS_MINSIZEREL_INIT     "/MT /O1 /Ob1 /D NDEBUG")
-    set(CMAKE_CXX_FLAGS_RELEASE_INIT        "/MT /O2 /Ob2 /D NDEBUG")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "/MT /Zi /O2 /Ob1 /D NDEBUG")
-else()
-    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
-endif()
-
 add_executable(example
     main.cpp
     render.cpp
 )
 
-target_include_directories(example PUBLIC
-    $<BUILD_INTERFACE:${SDL2_INCLUDE_DIRS}>
+target_link_libraries(example PRIVATE ngen::vulkan)
+
+# main.cpp provides its own main() rather than linking SDL2main.
+target_compile_definitions(example PRIVATE SDL_MAIN_HANDLED)
+
+# Compile the GLSL shaders to SPIR-V next to the executable, where render.cpp loads them from
+# (./shaders/vert.spv and ./shaders/frag.spv, relative to the working directory).
+if (NOT Vulkan_GLSLC_EXECUTABLE)
+    message(FATAL_ERROR "glslc was not found; it ships with the Vulkan SDK.")
+endif()
+
+set(SHADER_OUTPUTS)
+foreach (stage IN ITEMS vert frag)
+    set(source ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shader.${stage}.glsl)
+    set(output ${CMAKE_CURRENT_BINARY_DIR}/shaders/${stage}.spv)
+
+    add_custom_command(
+        OUTPUT  ${output}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=${stage} ${source} -o ${output}
+        DEPENDS ${source}
+        COMMENT "Compiling shader.${stage}.glsl"
+        VERBATIM
+    )
+    list(APPEND SHADER_OUTPUTS ${output})
+endforeach()
+
+add_custom_target(example_shaders DEPENDS ${SHADER_OUTPUTS})
+add_dependencies(example example_shaders)
+
+add_custom_command(TARGET example POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders $<TARGET_FILE_DIR:example>/shaders
+    VERBATIM
 )
 
-target_link_libraries(example SDL2::Main)
-target_link_libraries(example ngen::vulkan)
-target_link_libraries(example Vulkan::Vulkan)
-
-if(APPLE)
-    target_include_directories(example PRIVATE $ENV{MOLTEN_VK}/include)
-
-    # target_link_libraries(example "/Users/wcoles/Library/Frameworks/vulkansdk-macos-1.1.130.0/MoltenVK/macOS/framework/MoltenVK.framework/MoltenVK")
-    target_link_libraries(example "/Users/wcoles/Library/Frameworks/vulkansdk-macos-1.1.130.0/MoltenVK/macOS/static/libMoltenVK.a")
-    # target_link_libraries(example "$ENV{MOLTEN_VK}/macOS/Framework/MoltenVK.framework/MoltenVK")
-    # target_link_libraries(example "/Users/wcoles/Library/Frameworks/vulkansdk-macos-1.1.101.0/MoltenVK/macOS/static/MoltenVK")
-    # target_link_libraries(example "/Users/wcoles/Library/Frameworks/vulkansdk-macos-1.1.101.0/MoltenVK/macOS/static/libMoltenVK")
-    target_link_libraries(example ${COCOA_LIBRARY})
-    target_link_libraries(example ${IOKIT_LIBRARY})
-    target_link_libraries(example ${METAL_LIBRARY})
-    target_link_libraries(example ${QUARTZ_LIBRARY})
-    target_link_libraries(example ${IOSURFACE_LIBRARY})
-    target_link_libraries(example ${CORE_FOUNDATION_LIBRARY})
-    # target_link_libraries(example ${MoltenVK_LIBRARY})
-else()
-    target_include_directories(example PUBLIC
-        $<BUILD_INTERFACE:${Vulkan_INCLUDE_DIRS}
+# A shared SDL2 needs its DLL next to the executable on Windows.
+if (WIN32)
+    add_custom_command(TARGET example POST_BUILD
+        # Skipped when there are no DLLs (e.g. SDL2 built statically).
+        COMMAND "$<$<BOOL:$<TARGET_RUNTIME_DLLS:example>>:${CMAKE_COMMAND};-E;copy_if_different;$<TARGET_RUNTIME_DLLS:example>;$<TARGET_FILE_DIR:example>>"
+        COMMAND_EXPAND_LISTS
     )
-    target_link_libraries(example Vulkan::Vulkan)
 endif()
+
+# Run from the executable's folder in Visual Studio so the relative shader paths resolve.
+set_target_properties(example PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY $<TARGET_FILE_DIR:example>)
