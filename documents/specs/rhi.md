@@ -1,7 +1,7 @@
 # RHI — Spec
 
 > - **Template:** v1 · **ID:** rhi
-> - **Status:** ready
+> - **Status:** built
 > - **Blocked by:** [Platform](platform.md)
 > - **Background (not needed to build):** Feature: [ngen](README.md) · Design: [renderer](../design/renderer.md) · Technical: [renderer](../technical/renderer.md) · Inputs: none
 
@@ -41,9 +41,12 @@ built on the RHI can be tested without a GPU.
   marked `[[nodiscard]]`. No exceptions.
 - All rendering happens on the thread that created the device. The API holds no global or
   static mutable state, so devices are independent of each other.
+- The test target is `ngen_rhi_tests`.
 - Up to `kMaxFramesInFlight = 2` frames are recorded or executing at once.
 - A resource is destroyed only once no frame in flight uses it: `destroy` retires the handle at
-  once and frees the resource after every frame begun before the call has finished.
+  once and frees the resource after every frame begun before the call has finished. Destruction
+  counts frames, not calls: a resource destroyed while no frame is in flight is freed by the next
+  `beginFrame`.
 - ngen prints nothing when all is well. Diagnostics (validation warnings and errors, misuse such
   as a stale handle) go to the device's message sink, which by default writes errors and
   warnings to `stderr`.
@@ -81,7 +84,7 @@ handle from a stale one.
 The plain values that say what to create.
 
 **Interface:**
-- `enum class BufferUsage { Vertex, Uniform }` (a flag set: `Vertex | Uniform` is allowed)
+- `enum class BufferUsage : uint32_t { Vertex = 1, Uniform = 2 }`, a flag set with `|` and `&`
 - `struct BufferDescription { uint64_t size; BufferUsage usage; }`: buffers are host-visible in
   this milestone.
 - `enum class ShaderStage { Vertex, Fragment }`
@@ -96,13 +99,19 @@ The plain values that say what to create.
 - `struct GraphicsPipelineDescription { ShaderEntry vertex; ShaderEntry fragment; std::vector<VertexBinding> bindings; std::vector<VertexAttribute> attributes; Topology topology = TriangleList; CullMode cull = Back; FrontFace frontFace = Clockwise; PolygonMode polygonMode = Fill; }`:
   the pipeline renders to the swap chain's colour format; viewport and scissor are set while
   recording.
+- `std::expected<void, ngen::Error> validate(const BufferDescription&)`, and likewise for
+  `ShaderDescription` and `GraphicsPipelineDescription`: checks the requirements below, for every
+  backend to share.
+- `ColorTarget` compares with `==`.
 - `enum class LoadOp { Load, Clear, DontCare }`, `enum class StoreOp { Store, DontCare }`
 - `struct ColorTarget { LoadOp load = Clear; StoreOp store = Store; std::array<float, 4> clearColor = {0, 0, 0, 1}; }`
 
 **Requirements:**
-- A buffer `size` is above 0, and `usage` is non-empty.
+- A buffer `size` is above 0, and `usage` is non-empty with no unknown bits.
 - Shader `bytecode` is non-empty.
-- Every attribute's `binding` names a binding in `bindings`; attribute locations are unique.
+- Every attribute's `binding` names a binding in `bindings`; binding numbers are unique;
+  attribute locations are unique.
+- The vertex and fragment `entryPoint`s are non-empty.
 
 ### Device  (ngen_rhi/include/ngen/rhi/device.h)
 
@@ -114,6 +123,7 @@ frames that end by presenting to the swap chain.
 - `using MessageSink = std::function<void(Severity, std::string_view)>`
 - `struct DeviceDescription { std::string applicationName; bool enableValidation = false; MessageSink messageSink; }`:
   an empty `messageSink` means the default (warnings and errors to `stderr`, info dropped).
+- `MessageSink makeDefaultMessageSink()`: that default sink.
 - `class Device` (abstract):
   - `std::expected<BufferHandle, ngen::Error> createBuffer(const BufferDescription&)`
   - `std::expected<void, ngen::Error> writeBuffer(BufferHandle, uint64_t offset, std::span<const std::byte>)`:
@@ -123,19 +133,23 @@ frames that end by presenting to the swap chain.
   - `void destroy(BufferHandle)`, `void destroy(ShaderHandle)`, `void destroy(PipelineHandle)`:
     retire the handle (see *Constraints*); a null or stale handle is ignored.
   - `std::expected<void, ngen::Error> attachWindow(const ngen::platform::NativeWindow&, ngen::platform::PixelSize)`:
-    creates the swap chain; a device holds at most one.
+    creates the swap chain; a device holds at most one, and a second call returns
+    `InvalidArgument`.
   - `void onResized(ngen::platform::PixelSize)`, `void onSuspended()`,
     `std::expected<void, ngen::Error> onResumed(const ngen::platform::NativeWindow&, ngen::platform::PixelSize)`:
-    the application forwards the window's events.
+    the application forwards the window's events. With no window attached, `onResized` and
+    `onSuspended` are ignored and `onResumed` returns `InvalidArgument`.
   - `std::expected<CommandList*, ngen::Error> beginFrame()`: waits until a frame slot is free and
     returns its command list, recording; `nullptr` (no error) when there is nothing to present to:
     no window attached, suspended, or a 0-sized window. The command list is valid until `endFrame`.
   - `std::expected<void, ngen::Error> endFrame()`: ends recording, submits, and presents. Called
     only after a `beginFrame` that returned a command list.
   - `ngen::platform::PixelSize swapChainSize() const`: the size of the images being presented;
-    `{0, 0}` with no swap chain.
+    `{0, 0}` with no swap chain, which is the case while suspended or while the window is 0 in
+    either dimension.
   - `void waitIdle()`: blocks until the GPU has finished all submitted work.
-  - `virtual ~Device()`: waits for the GPU, then frees every resource still alive.
+  - `virtual ~Device()`: waits for the GPU, then frees every resource still alive. A `Device` is
+    not copyable.
 
 **Requirements:**
 - Creating from a description that breaks a *Descriptions* requirement returns `InvalidArgument`
@@ -144,10 +158,11 @@ frames that end by presenting to the swap chain.
 - `writeBuffer` past the end of the buffer, or to a stale handle, returns `InvalidArgument`.
 - `beginFrame` while a frame is being recorded, or `endFrame` without one, reports an `Error`
   message to the sink and returns `InvalidArgument`.
-- After `onResized`, the next `beginFrame` presents at the new size; after `onSuspended`,
+- After `onResized`, the next `beginFrame` presents at the new size (the resize applies there); after `onSuspended`,
   `beginFrame` returns `nullptr` until `onResumed` succeeds.
 - A destroyed resource stays alive while a frame begun before `destroy` has not finished; it is
-  freed by the first `beginFrame` (or the destructor) after that frame finishes.
+  freed by the first `beginFrame` (or the destructor) after that frame finishes, whether or not
+  that `beginFrame` returns a command list.
 
 ### CommandList  (ngen_rhi/include/ngen/rhi/command_list.h)
 
@@ -164,11 +179,18 @@ The abstract recorder for one frame's commands.
 - `void draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0)`
 
 **Requirements:**
-- `draw`, `bindPipeline` and `bindVertexBuffer` are recorded only between `beginRendering` and
-  `endRendering`; outside them, the call is skipped and an `Error` message is sent to the sink.
+- Misuse skips the command and sends an `Error` message to the sink:
+  - any command called after `endFrame` (reported as called after `endFrame`, nothing else);
+  - `draw`, `bindPipeline` or `bindVertexBuffer` outside `beginRendering`…`endRendering`;
+  - `beginRendering` while rendering, or `endRendering` while not rendering;
+  - `bindVertexBuffer` with a buffer lacking `BufferUsage::Vertex`, or an offset at or past the
+    buffer's size.
+- `setViewport` and `setScissor` may be called anywhere in a frame.
+- `endFrame` with rendering still open sends an `Error` message and still submits.
 - A null or stale handle passed to a command skips that command and sends an `Error` message
   naming it.
-- The frame's viewport and scissor default to the full swap chain image at `beginRendering`.
+- In a GPU backend, the frame's viewport and scissor default to the full swap chain image at
+  `beginRendering`.
 
 ### FakeDevice  (ngen_rhi/include/ngen/rhi/fake_device.h)
 
@@ -177,19 +199,24 @@ code built on the RHI.
 
 **Interface:**
 - `explicit FakeDevice(DeviceDescription = {})`
-- `struct RecordedCommand`: a `std::variant` of one struct per `CommandList` call, holding its
-  arguments.
+- `using RecordedCommand = std::variant<…>`: one struct per `CommandList` call, holding its
+  arguments, each comparable with `==`.
 - `const std::vector<std::vector<RecordedCommand>> &frames() const`: the commands of each frame
   ended so far, in order.
 - `size_t liveBuffers() const`, `liveShaders()`, `livePipelines()`: resources not yet freed.
 - `void completeFrames()`: marks every submitted frame as finished on the "GPU". Until it is
   called, `FakeDevice` treats submitted frames as still executing, so deferred destruction can
-  be tested.
+  be tested; but a `beginFrame` that finds every frame slot busy finishes the oldest frame, as
+  the GPU wait would. `waitIdle()` finishes every submitted frame.
 
 **Requirements:**
 - `FakeDevice` keeps every requirement of `Device` and `CommandList`, including the validation
   of descriptions, handles and call order.
 - `attachWindow` accepts any `NativeWindow`; `beginFrame` returns `nullptr` before it.
+- It records only the commands actually called (no default viewport or scissor), and keeps a
+  buffer's size and usage but not its contents.
+- `FakeDevice` and its command list derive from `Device` and `CommandList` directly; a backend
+  adds its own classes beneath the same bases.
 
 **Acceptance:**
 - A buffer destroyed during frame 1 is still counted by `liveBuffers()` after `endFrame`; after
@@ -200,41 +227,3 @@ code built on the RHI.
 - After `onSuspended`, `beginFrame` returns `nullptr`; after `onResumed`, it returns a command list.
 - `createPipeline` with an attribute naming binding 1 when only binding 0 exists returns
   `InvalidArgument`.
-
-## Build
-
-**Milestone:** [Triangle on the RHI](README.md)
-
-**Read first:** `ngen_platform/` (the `Error`, `Window` and test setup this builds on).
-
-**Touchpoints:**
-
-| Path / symbol | Create / modify | Kind |
-|---|---|---|
-| `CMakeLists.txt` | modify (add `ngen_rhi`) | config |
-| `ngen_rhi/` (CMakeLists, headers, sources, `tests/`) | create | code |
-
-**Fixed:**
-- The names, signatures and header paths in *Modules and interfaces*.
-- `Device` and `CommandList` are abstract bases; `FakeDevice` (and its command list) derive from
-  them directly, and nothing derives from those. A backend adds its own classes beneath the
-  same bases.
-- The main file of each module opens with `// Spec: rhi. Behaviour changes go through it.`
-- The test target is `ngen_rhi_tests`.
-
-**Free:** file split, private helpers, how `FakeDevice` stores resources (it may reuse
-`HandlePool`), and the tests.
-
-**Guardrails:**
-- Deferred destruction counts frames, not calls: a resource destroyed while no frame is in
-  flight is freed by the next `beginFrame`, not left waiting.
-- The default message sink writes nothing for `Info`.
-
-**Done when:**
-- *Agent-checkable:* every requirement and acceptance criterion above is covered by a test,
-  against `HandlePool` and `FakeDevice` · `ngen_rhi` builds with no graphics API on its include
-  path · `ctest` passes, existing tests each checking what they checked.
-- *Human check:* none; the interface is proven by the Vulkan backend and the example in the
-  milestone check.
-
-**Delegation:** Sonnet implementer, full review. A public interface every later module builds on.
