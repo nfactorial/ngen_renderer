@@ -48,18 +48,27 @@ also be created with no window, for tests.
   warnings and errors (general, validation and performance types) is created, and also chained
   into instance creation; each message goes to the sink as `Warning` or `Error`.
 - A physical device is suitable when it has a graphics queue family, supports Vulkan 1.1, and,
-  when a window may be attached, has the swap chain extension. A discrete GPU is preferred over
+  when a window may be attached, has the swap chain extension and a graphics family that can
+  present. A discrete GPU is preferred over
   any other suitable device; otherwise the first suitable device is used.
-- One graphics queue and, when it is a different family, one present queue (found against the
-  surface when the window is attached; the device is created with both families if needed).
+- The device has one queue, from one family used for both graphics and presentation, chosen at
+  `create` because the surface arrives later. With `WindowSupport::Expected` it is the first
+  graphics family the platform reports can present: on Windows,
+  `vkGetPhysicalDeviceWin32PresentationSupportKHR`; on Android and Apple, any graphics family.
+  `attachWindow` and `onResumed` confirm with `vkGetPhysicalDeviceSurfaceSupportKHR`.
 - Memory for buffers comes from VMA (VulkanMemoryAllocator, fetched with `FetchContent`, pinned
   to tag `v3.3.0`), host-visible and coherent.
 - Each frame slot has a command pool and buffer, an image-available semaphore and an in-flight
   fence; each swap chain image has its own render-finished semaphore.
 - Rendering uses a `VkRenderPass` per distinct (colour format, `LoadOp`, `StoreOp`), created on
-  first use and cached, with one framebuffer per swap chain image. Pipelines are created
-  against a render pass of the swap chain's format with load `Clear` and store `Store`, which is
-  compatible with every cached pass of that format.
+  first use and cached, with one framebuffer per swap chain image.
+- **Pipeline variants:** a pipeline handle holds one `VkPipeline` per colour format it has been
+  used with, each created against a render pass of that format with load `Clear` and store
+  `Store` (compatible with every cached pass of that format). The pipeline keeps its own copy of
+  its shaders' bytecode and entry points, so destroying a shader handle never affects a pipeline
+  made from it. `createPipeline` creates the variant for the swap chain's current format, or for
+  `B8G8R8A8_UNORM` when there is no swap chain; after a recreation changes the format, binding a
+  pipeline creates the new format's variant if it has none, and its handle stays valid.
 - Viewport and scissor are dynamic pipeline state.
 - The swap chain prefers `B8G8R8A8_UNORM` with sRGB non-linear colour space, else the first
   offered format; it prefers `FIFO` presentation (always available, so frame pacing follows the
@@ -85,8 +94,8 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
   `Unsupported`, saying the layer is missing.
 - `create` with no suitable physical device returns `Unsupported`, saying why devices were
   rejected.
-- `attachWindow` with a `NativeWindow` of a kind the build's platform does not use returns
-  `Unsupported`.
+- `attachWindow` with a `NativeWindow` of a kind the build's platform does not use, or whose
+  surface the device's queue family cannot present to, returns `Unsupported`.
 - **Swap chain recreation:** the swap chain is recreated, after the GPU finishes its frames in
   flight, when `onResized` reports a size different from the swap chain's, when acquiring or
   presenting returns `VK_ERROR_OUT_OF_DATE_KHR`, and when presenting returns `VK_SUBOPTIMAL_KHR`.
@@ -96,8 +105,12 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
   `nullptr`; the first non-zero size recreates it.
 - `onSuspended` waits for the GPU, then destroys the swap chain and the surface; `onResumed`
   creates a new surface from the handles given and a new swap chain.
-- A `VK_ERROR_DEVICE_LOST` from submit or present is returned as `DeviceLost`; every later
-  `beginFrame` returns `DeviceLost`.
+- **Device loss:** `VK_ERROR_DEVICE_LOST` from any Vulkan call on the frame path (fence wait,
+  acquire, submit, present) is returned as `DeviceLost`, and every later `beginFrame` returns
+  `DeviceLost`.
+- **Surface loss:** `VK_ERROR_SURFACE_LOST_KHR` from acquire or present destroys the swap chain
+  and surface (after the GPU finishes its frames in flight) and is returned as `SurfaceLost`;
+  `beginFrame` then returns `nullptr` until `onResumed` succeeds.
 - The destructor waits for the GPU and destroys everything it created, including retired
   resources, in reverse order of creation, with no validation messages.
 
@@ -107,6 +120,14 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
   `fragmentMain`, compiled by the build to SPIR-V 1.3), and a pipeline using both entries, then destroying them and the device, sends no `Warning` or `Error` message to the sink.
 - `writeBuffer` of 2 KB into the 1 KB buffer returns `InvalidArgument`.
 - `attachWindow` returns `Unsupported`.
+
+**Acceptance (window test, real Vulkan, validation on, `WindowSupport::Expected`):**
+- With a real `ngen::platform::SdlWindow` of 640 × 480 attached, the device presents 3 frames
+  (each clearing the image and drawing the test pipeline); after `SDL_SetWindowSize` to
+  800 × 600 and the resulting `onResized`, it presents 3 frames at 800 × 600
+  (`swapChainSize()`); after `onSuspended`, `beginFrame` returns `nullptr`; after `onResumed`
+  with the window's handles, it presents 3 more frames. No `Warning` or `Error` message reaches
+  the sink.
 
 ## Build
 
@@ -130,8 +151,9 @@ ported: instance and device setup, the debug messenger, swap chain, frame synchr
 - `VulkanDevice` and its command list derive directly from `ngen::rhi::Device` and
   `ngen::rhi::CommandList`, and nothing derives from them.
 - The main file opens with `// Spec: rhi-vulkan. Behaviour changes go through it.`
-- The test target is `ngen_rhi_vulkan_tests`. The smoke test is registered with the CTest label
-  `gpu`, and finds its compiled shader through a path the build passes in.
+- The test target is `ngen_rhi_vulkan_tests`. The smoke test and the window test are registered
+  with the CTest label `gpu`, and find their compiled shader through a path the build passes in.
+  Only the test target links `ngen_platform`'s SDL implementation; the library does not.
 
 **Free:** the internal class and file split, how resources are stored (it may reuse
 `HandlePool`), and further tests.
@@ -146,8 +168,9 @@ ported: instance and device setup, the debug messenger, swap chain, frame synchr
 
 **Done when:**
 - *Agent-checkable:* every requirement and acceptance criterion above is covered by a test
-  where one can run without a window (recreation and suspension are proven by the milestone
-  check) · `ctest` passes, including the `gpu` smoke test on this machine · `ngen_rhi_vulkan`'s
+  where one can run on this machine (device and surface loss, and out-of-date results, cannot be
+  forced; their handling is checked in review) · `ctest` passes, including both `gpu` tests on
+  this machine · `ngen_rhi_vulkan`'s
   public header includes no Vulkan header (grep).
 - *Human check:* none of its own; presenting, resizing and minimising are the milestone check.
 
