@@ -5,8 +5,7 @@ nGen uses the Vulkan graphics API for cross-platform rendering. The ngen_vulkan 
 to be a low-level wrapper around the Vulkan API to allow for re-use and refactoring of the higher
 level libraries.
 
-The display library sits on top of the rendering library, the display library is aimed at simplifying
-the rendering interface into higher order objects for use by the game itself.
+See [documents/design/renderer.md](documents/design/renderer.md) for the planned structure.
 
 # Dependencies
 - **CMake 3.24 or later.**
@@ -28,7 +27,6 @@ folder beside it. Run it from that folder, as it loads the shaders by relative p
 
 Options (pass with `-D<option>=ON|OFF`):
 - `NGEN_BUILD_EXAMPLE` (default ON): the example application.
-- `NGEN_BUILD_DISPLAY` (default ON): the ngen_display library.
 
 macOS support through MoltenVK has not been tested yet. The instance and device enable the Vulkan
 portability extensions MoltenVK requires, but the build has only been run on Windows.
