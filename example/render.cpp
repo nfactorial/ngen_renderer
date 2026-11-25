@@ -69,8 +69,6 @@ namespace example {
         m_frameBuffers.clear();
 
         m_vertexBuffer.dispose();
-        m_imageAvailable.dispose();
-        m_renderFinished.dispose();
 
         m_pipeline.dispose();
         m_renderPass.dispose();
@@ -153,13 +151,6 @@ namespace example {
             return false;
         }
 
-        if (!m_imageAvailable.create(m_renderer.getDevice()) || !m_renderFinished.create(m_renderer.getDevice())) {
-            printf("Failed to create semaphores\n");
-
-            dispose();
-            return false;
-        }
-
         if (!m_renderer.getContext().getSwapChain().createFrameBuffers(m_renderPass, m_frameBuffers)) {
             printf("Failed to create frame buffers\n");
 
@@ -175,8 +166,8 @@ namespace example {
     }
 
     void Render::render() {
-        if (m_renderer.beginFrame(m_imageAvailable, m_renderFinished, m_commandPool)) {
-            m_renderer.endFrame(m_renderFinished);
+        if (m_renderer.beginFrame(m_commandPool)) {
+            m_renderer.endFrame();
         }
     }
 

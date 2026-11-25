@@ -40,10 +40,10 @@ namespace ngen::vulkan {
         static void dumpExtensions();
 
     private:
-        bool create(const char *applicationName, bool enableValidation);
+        bool create(SDL_Window *window, const char *applicationName, bool enableValidation);
         bool checkValidationLayerSupport();
 
-        bool createInstance(const char *applicationName, uint32_t layerCount, const char* const* layerNames);
+        bool createInstance(SDL_Window *window, const char *applicationName, uint32_t layerCount, const char* const* layerNames);
 
         PhysicalDevice* selectDevice(WindowSurface &surface);
 

@@ -68,14 +68,16 @@ namespace ngen::vulkan {
         createInfo.clipped = VK_TRUE;
         createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        if (device.getGraphicsQueue() == device.getPresentationQueue()) {
+        const uint32_t queueFamilyIndices[] = {device.getGraphicsQueueFamily(), device.getPresentationQueueFamily()};
+
+        if (queueFamilyIndices[0] == queueFamilyIndices[1]) {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
             createInfo.queueFamilyIndexCount = 0;
             createInfo.pQueueFamilyIndices = nullptr;
         } else {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
-            //createInfo.pQueueFamilyIndices = queueFamilyIndices;
+            createInfo.pQueueFamilyIndices = queueFamilyIndices;
         }
 
         const VkResult result = vkCreateSwapchainKHR(device, &createInfo, nullptr, &m_handle);
@@ -166,7 +168,13 @@ namespace ngen::vulkan {
     //! \param imageIndex [out] - Pointer to an integer that will receive the index of the image.
     //! \returns <em>True</em> if the request processed successfully otherwise false.
     bool SwapChain::acquireNextImage(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t *imageIndex) {
-        return m_handle && VK_SUCCESS == vkAcquireNextImageKHR(m_device, m_handle, timeout, semaphore, fence, imageIndex);
+        if (VK_NULL_HANDLE == m_handle) {
+            return false;
+        }
+
+        // A suboptimal swap chain still delivered an image (and will signal the semaphore), so it must be used.
+        const VkResult result = vkAcquireNextImageKHR(m_device, m_handle, timeout, semaphore, fence, imageIndex);
+        return VK_SUCCESS == result || VK_SUBOPTIMAL_KHR == result;
     }
 
     //! \brief Retrieves a list of images from the swap chain.

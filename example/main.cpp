@@ -50,11 +50,13 @@ int main(int argc, char **argv) {
         } else {
             example::Render render;
 
-            render.initialize(window, kApplicationTitle);
+            bool running = render.initialize(window, kApplicationTitle);
+            if (running) {
+                result = 0;
+            } else {
+                printf("Failed to initialize renderer.\n");
+            }
 
-            printf("main entry point\n");
-
-            bool running = true;
             while (running) {
                 SDL_Event event;
 

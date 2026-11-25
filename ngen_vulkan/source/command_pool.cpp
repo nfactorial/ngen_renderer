@@ -42,10 +42,20 @@ namespace ngen::vulkan {
     //! \param flags [in] - Bit mask of VkCommandPoolCreateFlagBits indicating usage behaviour.
     //! \returns <em>True</em> if the command pool created successfully otherwise <em>false</em>.
     bool CommandPool::create(const VulkanContext &context, VkQueueFlags queueFlags, int flags) {
+        if (m_handle != VK_NULL_HANDLE) {
+            return false;
+        }
+
+        const int queueFamily = context.getPhysicalDevice()->findQueueFamily(queueFlags);
+        if (queueFamily < 0) {
+            printf("No queue family supports the requested command pool flags.\n");
+            return false;
+        }
+
         VkCommandPoolCreateInfo poolInfo{};
 
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = context.getPhysicalDevice()->findQueueFamily(queueFlags);
+        poolInfo.queueFamilyIndex = static_cast<uint32_t>(queueFamily);
         poolInfo.flags = flags;
 
         printf("Command queue for queueFamilyIndex %d\n", poolInfo.queueFamilyIndex);
