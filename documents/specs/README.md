@@ -59,3 +59,5 @@ Check: run the example: a rotating, lit 3D mesh draws with depth beside the spri
 - Parallel recording (change to `rhi` and `ngen_renderer`): record command lists on several threads.
 - `ngen_scene` (new spec): scene management built on the renderer.
 - `ngen_assets` (new spec): asset management.
+- SDL platform target (change to `platform`): move `SdlWindow` into its own target that links SDL3 publicly, so code including `sdl_window.h` need not link SDL3 itself.
+- Drop SDL2 settings (change to `platform`): remove the SDL2 dependency block, which shares SDL's static/shared options with SDL3, once nothing uses SDL2.

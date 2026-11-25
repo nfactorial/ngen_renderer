@@ -1,7 +1,7 @@
 # Platform — Spec
 
 > - **Template:** v1 · **ID:** platform
-> - **Status:** ready
+> - **Status:** built
 > - **Blocked by:** none
 > - **Background (not needed to build):** Feature: [ngen](README.md) · Design: [renderer](../design/renderer.md) · Technical: [renderer](../technical/renderer.md) · Inputs: none
 
@@ -41,13 +41,16 @@ holds `ngen::Error`, the error type every ngen module returns.
   `ngen_platform/include/ngen/error.h`), and are included as `<ngen/platform/…>`.
 - The CMake target is `ngen_platform`, with the alias `ngen::platform`.
 - The whole project builds as C++23 (`CMAKE_CXX_STANDARD 23`, required, no extensions).
-- The Windows configure preset uses the "Visual Studio 17 2022" generator, x64.
+- The Windows configure preset uses the "Visual Studio 17 2022" generator, x64; the macOS preset
+  uses Ninja, Debug. Both platforms are supported.
 - SDL3 is found as an installed CMake package, or else fetched and built statically, as SDL2 is
-  today. The fetch is pinned to one exact `release-3.2.x` tag, the newest 3.2 release when built. SDL2 stays available to the code that
-  still uses it until that code is removed.
+  today. The fetch is pinned to `release-3.2.30`, with SDL's test library off. SDL2 stays available to the
+  code that still uses it until that code is removed, and the two share SDL's static/shared
+  build options.
 - Tests use GoogleTest and GoogleMock, fetched with `FetchContent` (tag `v1.17.0`), registered
   with `gtest_discover_tests`, and run by `ctest`. A test target is built only when the CMake
-  option `NGEN_BUILD_TESTS` is on (default ON).
+  option `NGEN_BUILD_TESTS` is on (default ON), beside `NGEN_BUILD_EXAMPLE`. The test target is
+  `ngen_platform_tests`.
 
 ## Modules and interfaces
 
@@ -62,7 +65,7 @@ what failed and why.
 - `ngen::Error ngen::makeError(ErrorCode, std::string message)`
 
 **Requirements:**
-- `message` is never empty.
+- `message` is never empty: `makeError` with an empty message gives "unspecified <Code> error".
 
 ### Window  (ngen_platform/include/ngen/platform/window.h)
 
@@ -76,6 +79,8 @@ The interface a graphics backend and a game use to present to a window and follo
 - `using NativeWindow = std::variant<Win32Handles, AndroidHandles, AppleHandles>`
 - `struct WindowEvent { enum class Kind { Resized, Suspended, Resumed, CloseRequested } kind; PixelSize size; }`:
   `size` holds the new pixel size for `Resized` and `Resumed`, and `{0, 0}` otherwise.
+- `PixelSize`, `Win32Handles`, `AndroidHandles`, `AppleHandles` and `WindowEvent` have a defaulted
+  `operator==`, so tests can compare them.
 - `class Window` (abstract):
   - `std::expected<NativeWindow, ngen::Error> nativeWindow() const`: the current native handles;
     an error with code `SurfaceLost` while suspended.
@@ -83,6 +88,7 @@ The interface a graphics backend and a game use to present to a window and follo
   - `void pollEvents(std::vector<WindowEvent> &events)`: appends every event since the last
     call, in the order they happened, and returns at once when there are none.
   - `virtual ~Window()`
+- `SdlWindow` and `FakeWindow` derive from `Window` directly, and nothing derives from them.
 
 **Requirements:**
 - After a `Suspended` event and until the next `Resumed`, `nativeWindow()` returns `SurfaceLost`,
@@ -111,11 +117,18 @@ the application.
   Metal view; elsewhere none), and is high-pixel-density aware.
 - Native handles come from the SDL3 window properties (`SDL_PROP_WINDOW_WIN32_HWND_POINTER` and
   `SDL_PROP_WINDOW_WIN32_INSTANCE_POINTER`, `SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER`) and, on
-  Apple, the `CAMetalLayer` of a Metal view made with `SDL_Metal_CreateView`.
+  Apple, the `CAMetalLayer` of a Metal view made with `SDL_Metal_CreateView`. A missing Win32
+  handle gives `Internal`, a missing Android window gives `SurfaceLost`, and any other platform
+  gives `Unsupported`.
 - SDL's `SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED` becomes `Resized`;
-  `SDL_EVENT_WILL_ENTER_BACKGROUND` becomes `Suspended`; `SDL_EVENT_DID_ENTER_FOREGROUND` becomes
+  `SDL_EVENT_WINDOW_MINIMIZED` becomes `Resized` with size `{0, 0}` (some backends, Windows among
+  them, send no size change on minimise); `SDL_EVENT_WINDOW_RESTORED` becomes `Resized` with the
+  current pixel size; `SDL_EVENT_WILL_ENTER_BACKGROUND` becomes `Suspended`; `SDL_EVENT_DID_ENTER_FOREGROUND` becomes
   `Resumed`; `SDL_EVENT_WINDOW_CLOSE_REQUESTED` and `SDL_EVENT_QUIT` become `CloseRequested`.
-  Events for other windows are ignored.
+  Window events for other windows are ignored; the background and foreground events carry no
+  window and always apply. The window tracks suspension itself, and `Resumed` carries the pixel
+  size at that moment.
+- `pixelSize()` returns `{0, 0}` while `SDL_WINDOW_MINIMIZED` is set.
 - Destroying the `SdlWindow` destroys its Metal view (if any) and its SDL window.
 
 ### FakeWindow  (ngen_platform/include/ngen/platform/fake_window.h)
@@ -135,43 +148,3 @@ A `Window` whose state and events a test sets directly.
 - After `suspend()`, `nativeWindow()` returns `SurfaceLost`; after `resume(h)`, it returns `h`, and
   `pollEvents` delivers `Suspended` then `Resumed` carrying the current size.
 - A second `pollEvents` call with nothing new appends nothing.
-
-## Build
-
-**Milestone:** [Triangle on the RHI](README.md)
-
-**Read first:** `CMakeLists.txt`, `CMakePresets.json`, `cmake/dependencies.cmake`,
-`ngen_vulkan/CMakeLists.txt` (how a module target and alias are declared today).
-
-**Touchpoints:**
-
-| Path / symbol | Create / modify | Kind |
-|---|---|---|
-| `CMakeLists.txt` | modify (C++23, `NGEN_BUILD_TESTS`, `enable_testing`, add `ngen_platform`) | config |
-| `CMakePresets.json` | modify (Visual Studio 17 2022) | config |
-| `cmake/dependencies.cmake` | modify (SDL3, GoogleTest) | config |
-| `ngen_platform/` (CMakeLists, headers, sources, `tests/`) | create | code |
-
-**Fixed:**
-- The names, signatures and header paths in *Modules and interfaces*.
-- `Window` is the abstract base; `SdlWindow` and `FakeWindow` derive from it directly, and
-  nothing derives from them.
-- The main file of each module opens with `// Spec: platform. Behaviour changes go through it.`
-- The test target is `ngen_platform_tests`.
-
-**Free:** file split within `ngen_platform/source/`, private helpers, and the tests.
-
-**Guardrails:**
-- `ngen_platform` links SDL3 privately where it can; only `sdl_window.h` exposes SDL types, so
-  only code that includes it needs SDL's headers.
-- `ngen_vulkan` and the example keep building on SDL2, unchanged in behaviour; if both SDL
-  versions cannot be linked into one build, report it rather than porting other modules.
-
-**Done when:**
-- *Agent-checkable:* every requirement and acceptance criterion above is covered by a test,
-  `FakeWindow`'s directly and `SdlWindow`'s event translation by feeding it synthetic
-  `SDL_Event`s · the project configures with the new preset and builds · `ctest` passes ·
-  existing behaviour is unchanged: the example still builds and runs.
-- *Human check:* none of its own; `SdlWindow` on a real window is proven by the milestone check.
-
-**Delegation:** Sonnet implementer, full review. Build settings other modules rely on, and a public interface.
