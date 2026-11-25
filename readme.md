@@ -30,3 +30,9 @@ Options (pass with `-D<option>=ON|OFF`):
 
 macOS support through MoltenVK has not been tested yet. The instance and device enable the Vulkan
 portability extensions MoltenVK requires, but the build has only been run on Windows.
+
+# Development
+This project is planned and built with [Claude Code](https://claude.com/claude-code) and the
+[nfx-workflow](https://github.com/nfactorial/nfx-workflow) plugin. The design, technical
+documents and specs live under [documents/](documents/), and each module's code names the spec it
+was built from.
