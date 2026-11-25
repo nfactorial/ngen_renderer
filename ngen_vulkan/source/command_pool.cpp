@@ -42,13 +42,21 @@ namespace ngen::vulkan {
     //! \param flags [in] - Bit mask of VkCommandPoolCreateFlagBits indicating usage behaviour.
     //! \returns <em>True</em> if the command pool created successfully otherwise <em>false</em>.
     bool CommandPool::create(const VulkanContext &context, VkQueueFlags queueFlags, int flags) {
+        if (m_handle != VK_NULL_HANDLE) {
+            return false;
+        }
+
+        const int queueFamily = context.getPhysicalDevice()->findQueueFamily(queueFlags);
+        if (queueFamily < 0) {
+            printf("No queue family supports the requested command pool flags.\n");
+            return false;
+        }
+
         VkCommandPoolCreateInfo poolInfo{};
 
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = context.getPhysicalDevice()->findQueueFamily(queueFlags);
+        poolInfo.queueFamilyIndex = static_cast<uint32_t>(queueFamily);
         poolInfo.flags = flags;
-
-        printf("Command queue for queueFamilyIndex %d\n", poolInfo.queueFamilyIndex);
 
         const auto result = vkCreateCommandPool(context.getDevice(), &poolInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {
@@ -69,14 +77,12 @@ namespace ngen::vulkan {
             return false;
         }
 
-        printf("Attempting to create %d command buffers...\n", int(count));
         if (!m_commandBuffers.empty()) {
             vkFreeCommandBuffers(m_device, m_handle, m_commandBuffers.size(), m_commandBuffers.data());
             m_commandBuffers.clear();
         }
 
         m_commandBuffers.resize(count);
-        printf("m_commandBuffers.size is %d\n", (int)m_commandBuffers.size());
 
         VkCommandBufferAllocateInfo allocInfo{};
 

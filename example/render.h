@@ -4,7 +4,6 @@
 #include <pipeline.h>
 #include <command_pool.h>
 #include <render_pass.h>
-#include <semaphore.h>
 #include <renderer.h>
 #include <shader.h>
 #include <buffer.h>
@@ -33,8 +32,6 @@ namespace example {
         ngen::vulkan::RenderPass m_renderPass;
         ngen::vulkan::Pipeline m_pipeline;
 
-        ngen::vulkan::Semaphore   m_imageAvailable;
-        ngen::vulkan::Semaphore   m_renderFinished;
         ngen::vulkan::CommandPool m_commandPool;
     };
 }

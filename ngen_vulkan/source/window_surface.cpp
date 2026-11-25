@@ -45,7 +45,6 @@ namespace ngen::vulkan {
 
         m_instance = instance;
 
-        printf("Created window surface\n");
         return true;
     }
 

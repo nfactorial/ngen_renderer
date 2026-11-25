@@ -28,12 +28,9 @@ void processEvent(const SDL_Event &event, bool &running) {
 int main(int argc, char **argv) {
     int result = -1;
 
-    printf("ngen example\n");
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
         printf( "Failed to initialize SDL - Error: %s\n", SDL_GetError());
     } else {
-        ngen::vulkan::VulkanContext::dumpExtensions();
 
         SDL_Window *window = SDL_CreateWindow(
               kApplicationTitle
@@ -50,11 +47,13 @@ int main(int argc, char **argv) {
         } else {
             example::Render render;
 
-            render.initialize(window, kApplicationTitle);
+            bool running = render.initialize(window, kApplicationTitle);
+            if (running) {
+                result = 0;
+            } else {
+                printf("Failed to initialize renderer.\n");
+            }
 
-            printf("main entry point\n");
-
-            bool running = true;
             while (running) {
                 SDL_Event event;
 

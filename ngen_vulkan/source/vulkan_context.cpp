@@ -1,5 +1,6 @@
 #include <vector>
 #include <cstdio>
+#include <cstring>
 #include "vulkan_context.h"
 #include "vulkan_error.h"
 
@@ -13,9 +14,50 @@ namespace {
     };
 }
 
+namespace {
+    bool hasInstanceExtension(const char *name) {
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+
+        std::vector<VkExtensionProperties> extensions(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
+
+        for (const auto &extension : extensions) {
+            if (0 == strcmp(extension.extensionName, name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    //! \brief Reports validation messages; only warnings and errors are requested, so anything here is a problem.
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+                                                 VkDebugUtilsMessageTypeFlagsEXT,
+                                                 const VkDebugUtilsMessengerCallbackDataEXT *data,
+                                                 void *) {
+        const char *label = (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) ? "error" : "warning";
+        fprintf(stderr, "Vulkan %s: %s\n", label, data->pMessage);
+        return VK_FALSE;
+    }
+
+    VkDebugUtilsMessengerCreateInfoEXT makeMessengerInfo() {
+        VkDebugUtilsMessengerCreateInfoEXT info{};
+        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                         | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                         | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        info.pfnUserCallback = debugCallback;
+        return info;
+    }
+}
+
 namespace ngen::vulkan {
     VulkanContext::VulkanContext()
     : m_handle(VK_NULL_HANDLE)
+    , m_debugMessenger(VK_NULL_HANDLE)
     , m_physicalDevice(nullptr) {
     }
 
@@ -29,6 +71,15 @@ namespace ngen::vulkan {
             m_swapChain.dispose();
             m_device.dispose();
             m_windowSurface.dispose();
+
+            if (VK_NULL_HANDLE != m_debugMessenger) {
+                auto destroyMessenger = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+                    vkGetInstanceProcAddr(m_handle, "vkDestroyDebugUtilsMessengerEXT"));
+                if (destroyMessenger) {
+                    destroyMessenger(m_handle, m_debugMessenger, nullptr);
+                }
+                m_debugMessenger = VK_NULL_HANDLE;
+            }
 
             vkDestroyInstance(m_handle, nullptr);
 
@@ -62,16 +113,10 @@ namespace ngen::vulkan {
             return false;
         }
 
-        uint32_t extensionCount;
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-
-        std::vector<VkExtensionProperties> extensions(extensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-        if (create(applicationName, enableValidation)) {
+        if (create(window, applicationName, enableValidation)) {
             if (m_windowSurface.initialize(m_handle, window)) {
                 m_physicalDevice = selectDevice(m_windowSurface);
-                if (m_physicalDevice && m_device.create(*m_physicalDevice, m_windowSurface, ngen::vulkan::platform::kDefaultDeviceExtensionCount, ngen::vulkan::platform::kDefaultDeviceExtensions)) {
+                if (m_physicalDevice && m_device.create(*m_physicalDevice, m_windowSurface, platform::kDefaultDeviceExtensionCount, platform::kDefaultDeviceExtensions)) {
                     m_swapChain.initialize(*m_physicalDevice, m_windowSurface);
                     if (m_swapChain.create(m_device, m_windowSurface)) {
                         return true;
@@ -100,16 +145,17 @@ namespace ngen::vulkan {
     //! \param applicationName [in] - The name associated with the running application.
     //! \param enableValidation [in] - If <em>True</em> vulkan will be created with validation layers.
     //! \returns True if the instance was created successfully otherwise false.
-    bool VulkanContext::create(const char *applicationName, bool enableValidation) {
+    bool VulkanContext::create(SDL_Window *window, const char *applicationName, bool enableValidation) {
         if (enableValidation) {
             if (!checkValidationLayerSupport()) {
+                printf("Validation requested but VK_LAYER_KHRONOS_validation is not installed.\n");
                 return false;
             }
 
-            return createInstance(applicationName, sizeof(kValidationLayers) / sizeof(kValidationLayers[0]), kValidationLayers);
+            return createInstance(window, applicationName, sizeof(kValidationLayers) / sizeof(kValidationLayers[0]), kValidationLayers);
         }
 
-        return createInstance(applicationName, 0, nullptr);
+        return createInstance(window, applicationName, 0, nullptr);
     }
 
     //! \brief Determines whether or not the specified validation layers are supported.
@@ -140,14 +186,35 @@ namespace ngen::vulkan {
     }
 
     //! \brief Attempts to create the vulkan instance with the supplied information.
+    //! \param window [in] - The window we will present to; SDL reports the instance extensions it needs.
     //! \param applicationName [in] - The name associated with the running application.
     //! \param layerCount [in] - The number of layers specified in the layerNames parameters.
     //! \param layerNames [in] - List of layers that should be enabled on the created device.
     //! \returns True if the instance was created successfully otherwise false.
-    bool VulkanContext::createInstance(const char *applicationName, uint32_t layerCount, const char* const* layerNames) {
-        VkApplicationInfo appInfo = {};
+    bool VulkanContext::createInstance(SDL_Window *window, const char *applicationName, uint32_t layerCount, const char* const* layerNames) {
+        unsigned int sdlExtensionCount = 0;
+        if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, nullptr)) {
+            printf("Failed to query Vulkan instance extensions: %s\n", SDL_GetError());
+            return false;
+        }
 
-        printf("Creating instance with %d layers\n", layerCount);
+        std::vector<const char*> extensions(sdlExtensionCount);
+        SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, extensions.data());
+
+        // Portability drivers (e.g. MoltenVK) are only enumerated when the application opts in.
+        VkInstanceCreateFlags flags = 0;
+        if (hasInstanceExtension(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)) {
+            extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+            flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+        }
+
+        // With validation on, route its messages through our callback; chaining the info also covers instance creation.
+        const VkDebugUtilsMessengerCreateInfoEXT messengerInfo = makeMessengerInfo();
+        if (layerCount > 0) {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+
+        VkApplicationInfo appInfo = {};
 
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = applicationName;
@@ -159,10 +226,12 @@ namespace ngen::vulkan {
         VkInstanceCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
-        createInfo.enabledExtensionCount = ngen::vulkan::platform::kDefaultVulkanExtensionCount;
-        createInfo.ppEnabledExtensionNames = ngen::vulkan::platform::kDefaultVulkanExtensions;
+        createInfo.flags = flags;
+        createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+        createInfo.ppEnabledExtensionNames = extensions.data();
         createInfo.ppEnabledLayerNames = layerNames;
         createInfo.enabledLayerCount = layerCount;
+        createInfo.pNext = layerCount > 0 ? &messengerInfo : nullptr;
 
         const auto result = vkCreateInstance(&createInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {
@@ -170,7 +239,14 @@ namespace ngen::vulkan {
             return false;
         }
 
-        printf("Successfully created Vulkan instance!\n");
+        if (layerCount > 0) {
+            auto createMessenger = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+                vkGetInstanceProcAddr(m_handle, "vkCreateDebugUtilsMessengerEXT"));
+            if (!createMessenger || VK_SUCCESS != createMessenger(m_handle, &messengerInfo, nullptr, &m_debugMessenger)) {
+                printf("Failed to create debug messenger, validation messages will not be reported.\n");
+            }
+        }
+
         return true;
     }
 
@@ -182,7 +258,6 @@ namespace ngen::vulkan {
 
         for (auto &device : m_physicalDevices) {
             if (device.isDeviceSuitable(surface)) {
-                printf("Selected device for rendering\n");
                 return &device;
             }
         }

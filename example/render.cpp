@@ -69,8 +69,6 @@ namespace example {
         m_frameBuffers.clear();
 
         m_vertexBuffer.dispose();
-        m_imageAvailable.dispose();
-        m_renderFinished.dispose();
 
         m_pipeline.dispose();
         m_renderPass.dispose();
@@ -85,14 +83,8 @@ namespace example {
             return false;
         }
 
-        printf("Renderer initialized successfully\n");
-
-        printf("Loading shader data\n");
-
         auto vertexSource = loadFile("./shaders/vert.spv");
         auto fragmentSource = loadFile("./shaders/frag.spv");
-
-        printf("Creating shaders\n");
 
         // TODO: Still early days for the API, this is a little messy right now
         if (!m_vertexShader.create(m_renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length) ||
@@ -153,13 +145,6 @@ namespace example {
             return false;
         }
 
-        if (!m_imageAvailable.create(m_renderer.getDevice()) || !m_renderFinished.create(m_renderer.getDevice())) {
-            printf("Failed to create semaphores\n");
-
-            dispose();
-            return false;
-        }
-
         if (!m_renderer.getContext().getSwapChain().createFrameBuffers(m_renderPass, m_frameBuffers)) {
             printf("Failed to create frame buffers\n");
 
@@ -175,8 +160,8 @@ namespace example {
     }
 
     void Render::render() {
-        if (m_renderer.beginFrame(m_imageAvailable, m_renderFinished, m_commandPool)) {
-            m_renderer.endFrame(m_renderFinished);
+        if (m_renderer.beginFrame(m_commandPool)) {
+            m_renderer.endFrame();
         }
     }
 

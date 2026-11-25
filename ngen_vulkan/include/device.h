@@ -7,7 +7,6 @@
 #include <memory>
 #include <vector>
 #include "platform.h"
-#include "swap_chain.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -34,13 +33,28 @@ namespace ngen::vulkan {
 
         operator VkDevice() const; // NOLINT
 
-    public:
-        SwapChain m_swapChain;
+        [[nodiscard]] uint32_t getPresentationQueueFamily() const;
+        [[nodiscard]] uint32_t getGraphicsQueueFamily() const;
+
+    private:
         VkDevice m_handle;
 
         VkQueue m_presentationQueue;
         VkQueue m_graphicsQueue;
+
+        uint32_t m_presentationQueueFamily;
+        uint32_t m_graphicsQueueFamily;
     };
+
+    //! \brief Retrieves the index of the queue family used for presentation.
+    inline uint32_t Device::getPresentationQueueFamily() const {
+        return m_presentationQueueFamily;
+    }
+
+    //! \brief Retrieves the index of the queue family used for graphics rendering.
+    inline uint32_t Device::getGraphicsQueueFamily() const {
+        return m_graphicsQueueFamily;
+    }
 
     //! \brief Retrieves the queue suitable for presentation.
     //! \returns The presentation queue to be used for the device.
