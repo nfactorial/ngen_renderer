@@ -29,8 +29,6 @@ folder beside it. Run it from that folder, as it loads the shaders by relative p
 Options (pass with `-D<option>=ON|OFF`):
 - `NGEN_BUILD_EXAMPLE` (default ON): the example application.
 - `NGEN_BUILD_DISPLAY` (default ON): the ngen_display library.
-- `NGEN_BUILD_DIRECTX12` (default OFF, Windows only): the DirectX 12 backend, an unfinished stub
-  that does not compile yet.
 
-macOS support through MoltenVK is not yet working: the instance still needs the Vulkan portability
-extensions.
+macOS support through MoltenVK has not been tested yet. The instance and device enable the Vulkan
+portability extensions MoltenVK requires, but the build has only been run on Windows.
