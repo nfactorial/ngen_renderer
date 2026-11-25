@@ -73,8 +73,7 @@ namespace example {
         m_pipeline.dispose();
         m_renderPass.dispose();
         m_commandPool.dispose();
-        m_fragmentShader.dispose();
-        m_vertexShader.dispose();
+        m_shader.dispose();
         m_renderer.dispose();
     }
 
@@ -83,12 +82,10 @@ namespace example {
             return false;
         }
 
-        auto vertexSource = loadFile("./shaders/vert.spv");
-        auto fragmentSource = loadFile("./shaders/frag.spv");
+        auto shaderSource = loadFile("./shaders/triangle.spv");
 
         // TODO: Still early days for the API, this is a little messy right now
-        if (!m_vertexShader.create(m_renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length) ||
-            !m_fragmentShader.create(m_renderer.getDevice(), fragmentSource.ptr.get(), fragmentSource.length)) {
+        if (!shaderSource.ptr || !m_shader.create(m_renderer.getDevice(), shaderSource.ptr.get(), shaderSource.length)) {
             printf("Failed to create shaders\n");
 
             dispose();
@@ -118,8 +115,8 @@ namespace example {
         description.addVertexBinding(sizeof(Vertex))
                    .addAttribute(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position))
                    .addAttribute(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color))
-                   .addVertexShader(m_vertexShader)
-                   .addFragmentShader(m_fragmentShader)
+                   .addVertexShader(m_shader, "vertexMain")
+                   .addFragmentShader(m_shader, "fragmentMain")
                    .setViewport(0.0f, 0.0f, float(extent.width), float(extent.height), 0.0f, 1.0f)
                    .setScissor(0, 0, extent);
 

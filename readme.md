@@ -11,7 +11,7 @@ the rendering interface into higher order objects for use by the game itself.
 # Dependencies
 - **CMake 3.24 or later.**
 - **Vulkan SDK** from [LunarG](https://vulkan.lunarg.com/sdk/home). The installer sets the `VULKAN_SDK`
-  environment variable, which CMake uses to find Vulkan and the `glslc` shader compiler.
+  environment variable, which CMake uses to find Vulkan and the `slangc` shader compiler.
 - **SDL2.** If CMake can find an installed SDL2 (through its CMake package, e.g. by adding the install
   folder to `CMAKE_PREFIX_PATH`), that is used. Otherwise SDL2 is downloaded and built automatically.
 

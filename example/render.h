@@ -27,8 +27,7 @@ namespace example {
 
         ngen::vulkan::Buffer m_vertexBuffer;
         ngen::vulkan::Renderer m_renderer;
-        ngen::vulkan::Shader m_vertexShader;
-        ngen::vulkan::Shader m_fragmentShader;
+        ngen::vulkan::Shader m_shader;     // Module holding both the vertex and fragment entry points.
         ngen::vulkan::RenderPass m_renderPass;
         ngen::vulkan::Pipeline m_pipeline;
 

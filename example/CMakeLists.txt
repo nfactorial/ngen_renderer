@@ -8,23 +8,24 @@ target_link_libraries(example PRIVATE ngen::vulkan)
 # main.cpp provides its own main() rather than linking SDL2main.
 target_compile_definitions(example PRIVATE SDL_MAIN_HANDLED)
 
-# Compile the GLSL shaders to SPIR-V next to the executable, where render.cpp loads them from
-# (./shaders/vert.spv and ./shaders/frag.spv, relative to the working directory).
-if (NOT Vulkan_GLSLC_EXECUTABLE)
-    message(FATAL_ERROR "glslc was not found; it ships with the Vulkan SDK.")
-endif()
+# Compile the Slang shaders to SPIR-V next to the executable, where render.cpp loads them from
+# (./shaders/triangle.spv, relative to the working directory). slangc ships with the Vulkan SDK.
+find_program(SLANGC_EXECUTABLE slangc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin" REQUIRED)
 
 set(SHADER_OUTPUTS)
-foreach (stage IN ITEMS vert frag)
-    set(source ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shader.${stage}.glsl)
-    set(output ${CMAKE_CURRENT_BINARY_DIR}/shaders/${stage}.spv)
+foreach (shader IN ITEMS triangle)
+    set(source ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${shader}.slang)
+    set(output ${CMAKE_CURRENT_BINARY_DIR}/shaders/${shader}.spv)
 
+    # Every module provides vertexMain and fragmentMain; the entry point names are kept in the SPIR-V.
+    # SPIR-V 1.3 matches the Vulkan 1.1 instance version requested in vulkan_context.cpp.
     add_custom_command(
         OUTPUT  ${output}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders
-        COMMAND ${Vulkan_GLSLC_EXECUTABLE} -fshader-stage=${stage} ${source} -o ${output}
+        COMMAND ${SLANGC_EXECUTABLE} ${source} -target spirv -profile spirv_1_3 -fvk-use-entrypoint-name
+                -entry vertexMain -stage vertex -entry fragmentMain -stage fragment -o ${output}
         DEPENDS ${source}
-        COMMENT "Compiling shader.${stage}.glsl"
+        COMMENT "Compiling ${shader}.slang"
         VERBATIM
     )
     list(APPEND SHADER_OUTPUTS ${output})

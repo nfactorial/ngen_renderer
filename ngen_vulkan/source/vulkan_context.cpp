@@ -7,7 +7,8 @@
 namespace {
     const char *kEngineName = "nGen";
     const uint32_t kEngineVersion = VK_MAKE_VERSION(1, 0, 0);
-    const uint32_t kVulkanSdkVersion = VK_API_VERSION_1_0;
+    // Vulkan 1.1 is the Android baseline, and the oldest version Slang's SPIR-V output (1.3) runs on.
+    const uint32_t kVulkanSdkVersion = VK_API_VERSION_1_1;
 
     const char* kValidationLayers[] = {
         "VK_LAYER_KHRONOS_validation"
