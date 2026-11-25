@@ -2,8 +2,8 @@
 
 > - **Template:** v1 · **ID:** rhi
 > - **Status:** built
-> - **Blocked by:** [Platform](platform.md)
-> - **Background (not needed to build):** Feature: [ngen](README.md) · Design: [renderer](../design/renderer.md) · Technical: [renderer](../technical/renderer.md) · Inputs: none
+> - **Blocked by:** [Platform](../platform/platform.md)
+> - **Background (not needed to build):** Feature: [ngen](../README.md) · Design: [renderer](../../design/renderer.md) · Technical: [renderer](../../technical/renderer.md) · Inputs: none
 
 ## Goal
 

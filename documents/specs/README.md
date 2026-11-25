@@ -9,10 +9,10 @@ backend) and renderer.
 
 ## Specs
 
-- [Platform](platform.md): the window interface (native handles, pixel size, resize and suspend events), its SDL3 implementation, and `ngen::Error`.
-- [RHI](rhi.md): the backend-neutral device, handles, resource descriptions, command lists and the fake backend for tests.
-- [RHI Vulkan backend](rhi_vulkan.md): the Vulkan implementation of the RHI.
-- [Example application](example.md): the triangle drawn through ngen, the visual check.
+- [Platform](platform/platform.md): the window interface (native handles, pixel size, resize and suspend events), its SDL3 implementation, and `ngen::Error`.
+- [RHI](graphics/rhi.md): the backend-neutral device, handles, resource descriptions, command lists and the fake backend for tests.
+- [RHI Vulkan backend](graphics/rhi_vulkan.md): the Vulkan implementation of the RHI.
+- [Example application](examples/example.md): the triangle drawn through ngen, the visual check.
 
 ## Not yet planned
 

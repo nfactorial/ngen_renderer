@@ -2,8 +2,8 @@
 
 > - **Template:** v1 · **ID:** example
 > - **Status:** ready
-> - **Blocked by:** [RHI Vulkan backend](rhi_vulkan.md), [RHI](rhi.md), [Platform](platform.md)
-> - **Background (not needed to build):** Feature: [ngen](README.md) · Design: [renderer](../design/renderer.md) · Technical: none · Inputs: none
+> - **Blocked by:** [RHI Vulkan backend](../graphics/rhi_vulkan.md), [RHI](../graphics/rhi.md), [Platform](../platform/platform.md)
+> - **Background (not needed to build):** Feature: [ngen](../README.md) · Design: [renderer](../../design/renderer.md) · Technical: none · Inputs: none
 
 ## Goal
 
@@ -56,7 +56,7 @@ down in reverse order.
 
 ## Build
 
-**Milestone:** [Triangle on the RHI](README.md)
+**Milestone:** [Triangle on the RHI](../README.md)
 
 **Read first:** `ngen_platform/include/ngen/platform/`, `ngen_rhi/include/ngen/rhi/`,
 `ngen_rhi_vulkan/include/ngen/rhi/vulkan/vulkan_device.h`; `example/` as it is.

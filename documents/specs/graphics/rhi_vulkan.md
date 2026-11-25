@@ -2,8 +2,8 @@
 
 > - **Template:** v1 · **ID:** rhi-vulkan
 > - **Status:** ready
-> - **Blocked by:** [RHI](rhi.md), [Platform](platform.md)
-> - **Background (not needed to build):** Feature: [ngen](README.md) · Design: [renderer](../design/renderer.md) · Technical: [renderer](../technical/renderer.md) · Inputs: none
+> - **Blocked by:** [RHI](rhi.md), [Platform](../platform/platform.md)
+> - **Background (not needed to build):** Feature: [ngen](../README.md) · Design: [renderer](../../design/renderer.md) · Technical: [renderer](../../technical/renderer.md) · Inputs: none
 
 ## Goal
 
@@ -131,7 +131,7 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
 
 ## Build
 
-**Milestone:** [Triangle on the RHI](README.md)
+**Milestone:** [Triangle on the RHI](../README.md)
 
 **Read first:** `ngen_rhi/include/ngen/rhi/`; `ngen_platform/include/ngen/platform/window.h`;
 `ngen_vulkan/source/` (the Vulkan code being

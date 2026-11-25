@@ -3,7 +3,7 @@
 > - **Template:** v1 · **ID:** platform
 > - **Status:** built
 > - **Blocked by:** none
-> - **Background (not needed to build):** Feature: [ngen](README.md) · Design: [renderer](../design/renderer.md) · Technical: [renderer](../technical/renderer.md) · Inputs: none
+> - **Background (not needed to build):** Feature: [ngen](../README.md) · Design: [renderer](../../design/renderer.md) · Technical: [renderer](../../technical/renderer.md) · Inputs: none
 
 ## Goal
 
