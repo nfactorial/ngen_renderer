@@ -86,8 +86,6 @@ namespace ngen::vulkan {
             return false;
         }
 
-        printf("Successfully created swap chain for rendering.\n");
-
         m_device = device;
         m_imageFormat = createInfo.imageFormat;
 

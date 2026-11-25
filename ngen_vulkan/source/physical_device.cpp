@@ -29,17 +29,14 @@ namespace ngen::vulkan {
         const int presentationQueue = findPresentationQueue(surface);
 
         if (-1 == graphicsQueue) {
-            printf("Unable to find graphics queue\n");
             return false;
         }
 
         if (-1 == presentationQueue) {
-            printf("Unable to find presentation queue\n");
             return false;
         }
 
         if (!hasExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
-            printf("Device did not support the required swap-chain extension.\n");
             return false;
         }
 

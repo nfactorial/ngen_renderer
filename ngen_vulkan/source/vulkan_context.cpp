@@ -30,11 +30,34 @@ namespace {
 
         return false;
     }
+
+    //! \brief Reports validation messages; only warnings and errors are requested, so anything here is a problem.
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+                                                 VkDebugUtilsMessageTypeFlagsEXT,
+                                                 const VkDebugUtilsMessengerCallbackDataEXT *data,
+                                                 void *) {
+        const char *label = (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) ? "error" : "warning";
+        fprintf(stderr, "Vulkan %s: %s\n", label, data->pMessage);
+        return VK_FALSE;
+    }
+
+    VkDebugUtilsMessengerCreateInfoEXT makeMessengerInfo() {
+        VkDebugUtilsMessengerCreateInfoEXT info{};
+        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                         | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                         | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        info.pfnUserCallback = debugCallback;
+        return info;
+    }
 }
 
 namespace ngen::vulkan {
     VulkanContext::VulkanContext()
     : m_handle(VK_NULL_HANDLE)
+    , m_debugMessenger(VK_NULL_HANDLE)
     , m_physicalDevice(nullptr) {
     }
 
@@ -48,6 +71,15 @@ namespace ngen::vulkan {
             m_swapChain.dispose();
             m_device.dispose();
             m_windowSurface.dispose();
+
+            if (VK_NULL_HANDLE != m_debugMessenger) {
+                auto destroyMessenger = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+                    vkGetInstanceProcAddr(m_handle, "vkDestroyDebugUtilsMessengerEXT"));
+                if (destroyMessenger) {
+                    destroyMessenger(m_handle, m_debugMessenger, nullptr);
+                }
+                m_debugMessenger = VK_NULL_HANDLE;
+            }
 
             vkDestroyInstance(m_handle, nullptr);
 
@@ -116,6 +148,7 @@ namespace ngen::vulkan {
     bool VulkanContext::create(SDL_Window *window, const char *applicationName, bool enableValidation) {
         if (enableValidation) {
             if (!checkValidationLayerSupport()) {
+                printf("Validation requested but VK_LAYER_KHRONOS_validation is not installed.\n");
                 return false;
             }
 
@@ -175,9 +208,13 @@ namespace ngen::vulkan {
             flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
         }
 
-        VkApplicationInfo appInfo = {};
+        // With validation on, route its messages through our callback; chaining the info also covers instance creation.
+        const VkDebugUtilsMessengerCreateInfoEXT messengerInfo = makeMessengerInfo();
+        if (layerCount > 0) {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
 
-        printf("Creating instance with %d layers\n", layerCount);
+        VkApplicationInfo appInfo = {};
 
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = applicationName;
@@ -194,6 +231,7 @@ namespace ngen::vulkan {
         createInfo.ppEnabledExtensionNames = extensions.data();
         createInfo.ppEnabledLayerNames = layerNames;
         createInfo.enabledLayerCount = layerCount;
+        createInfo.pNext = layerCount > 0 ? &messengerInfo : nullptr;
 
         const auto result = vkCreateInstance(&createInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {
@@ -201,7 +239,14 @@ namespace ngen::vulkan {
             return false;
         }
 
-        printf("Successfully created Vulkan instance!\n");
+        if (layerCount > 0) {
+            auto createMessenger = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+                vkGetInstanceProcAddr(m_handle, "vkCreateDebugUtilsMessengerEXT"));
+            if (!createMessenger || VK_SUCCESS != createMessenger(m_handle, &messengerInfo, nullptr, &m_debugMessenger)) {
+                printf("Failed to create debug messenger, validation messages will not be reported.\n");
+            }
+        }
+
         return true;
     }
 
@@ -213,7 +258,6 @@ namespace ngen::vulkan {
 
         for (auto &device : m_physicalDevices) {
             if (device.isDeviceSuitable(surface)) {
-                printf("Selected device for rendering\n");
                 return &device;
             }
         }

@@ -83,14 +83,8 @@ namespace example {
             return false;
         }
 
-        printf("Renderer initialized successfully\n");
-
-        printf("Loading shader data\n");
-
         auto vertexSource = loadFile("./shaders/vert.spv");
         auto fragmentSource = loadFile("./shaders/frag.spv");
-
-        printf("Creating shaders\n");
 
         // TODO: Still early days for the API, this is a little messy right now
         if (!m_vertexShader.create(m_renderer.getDevice(), vertexSource.ptr.get(), vertexSource.length) ||

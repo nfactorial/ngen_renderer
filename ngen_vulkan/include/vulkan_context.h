@@ -57,6 +57,7 @@ namespace ngen::vulkan {
         Device m_device;
 
         VkInstance m_handle;
+        VkDebugUtilsMessengerEXT m_debugMessenger;
     };
 
     inline VulkanContext::operator VkInstance() const {

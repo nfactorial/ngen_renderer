@@ -58,8 +58,6 @@ namespace ngen::vulkan {
         poolInfo.queueFamilyIndex = static_cast<uint32_t>(queueFamily);
         poolInfo.flags = flags;
 
-        printf("Command queue for queueFamilyIndex %d\n", poolInfo.queueFamilyIndex);
-
         const auto result = vkCreateCommandPool(context.getDevice(), &poolInfo, nullptr, &m_handle);
         if (result != VK_SUCCESS) {
             printf("Failed to create command pool: %s.\n", getResultString(result));
@@ -79,14 +77,12 @@ namespace ngen::vulkan {
             return false;
         }
 
-        printf("Attempting to create %d command buffers...\n", int(count));
         if (!m_commandBuffers.empty()) {
             vkFreeCommandBuffers(m_device, m_handle, m_commandBuffers.size(), m_commandBuffers.data());
             m_commandBuffers.clear();
         }
 
         m_commandBuffers.resize(count);
-        printf("m_commandBuffers.size is %d\n", (int)m_commandBuffers.size());
 
         VkCommandBufferAllocateInfo allocInfo{};
 
