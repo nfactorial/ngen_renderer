@@ -106,7 +106,7 @@ someone can assemble their own.
 
 ## Cross-cutting
 
-- **Language:** C++20.
+- **Language:** C++23.
 - **Threading:** one thread records and submits for now. Nothing in the API relies on global
   state, so command recording can later be spread across threads (one command pool per thread).
 - **Errors:** functions that can fail return a `[[nodiscard]]` result holding either the value or
