@@ -328,8 +328,7 @@ TEST_F(VulkanDeviceWindowTest, MisuseIsSkippedWithOneErrorMessageEach)
 
 TEST_F(VulkanDeviceWindowTest, LoadAndFramesWithoutRenderingPresentCleanly)
 {
-    // On fresh images: a first pass loading an image never rendered, then a second pass loading the first's
-    // result.
+    // A first pass loading the image while it is Undefined, then a second pass loading the first's result.
     for (int i = 0; i < 4; ++i)
     {
         const auto frame = device_->beginFrame();
@@ -460,6 +459,154 @@ TEST_F(VulkanDeviceWindowTest, EachPassStartsWithTheFullImageAsViewportAndScisso
     commands.endRendering();
     ASSERT_TRUE(device_->endFrame().has_value());
 
+    device_.reset();
+    EXPECT_EQ(log_.problems(), "");
+}
+
+namespace
+{
+    Barrier swapChainBarrier(const ResourceState before, const ResourceState after)
+    {
+        return Barrier{SwapChainImage{}, before, after};
+    }
+} // namespace
+
+// Acceptance (window test): explicit barriers around a Clear pass and a Load pass, a pass with no barrier first,
+// and a frame with no pass each present with no Warning or Error. Each kind runs for more frames than the swap
+// chain has images, so every image is used by it.
+TEST_F(VulkanDeviceWindowTest, ExplicitBarriersImplicitTransitionsAndFramesWithNoPassPresentCleanly)
+{
+    constexpr int kFrames = 6;
+    for (int i = 0; i < kFrames; ++i)
+    {
+        const auto frame = device_->beginFrame();
+        ASSERT_TRUE(frame.has_value() && *frame != nullptr);
+        CommandList &commands = **frame;
+        commands.barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment));
+        commands.beginRendering(ColorTarget{LoadOp::Clear, StoreOp::Store, {0.1f, 0.2f, 0.3f, 1.0f}});
+        commands.endRendering();
+        commands.barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::ColorAttachment));
+        commands.beginRendering(ColorTarget{LoadOp::Load, StoreOp::Store});
+        commands.bindPipeline(pipeline_);
+        commands.bindVertexBuffer(0, buffer_);
+        commands.draw(3);
+        commands.endRendering();
+        ASSERT_TRUE(device_->endFrame().has_value());
+        // The two barriers, and endFrame's move to Present; beginRendering found the image a colour attachment.
+        EXPECT_EQ(static_cast<const VulkanCommandList &>(commands).pipelineBarrierCount(), 3u);
+    }
+    for (int i = 0; i < kFrames; ++i)
+    {
+        const auto frame = device_->beginFrame();
+        ASSERT_TRUE(frame.has_value() && *frame != nullptr);
+        CommandList &commands = **frame;
+        commands.beginRendering(ColorTarget{});
+        commands.bindPipeline(pipeline_);
+        commands.bindVertexBuffer(0, buffer_);
+        commands.draw(3);
+        commands.endRendering();
+        ASSERT_TRUE(device_->endFrame().has_value());
+        // beginRendering's own move to ColorAttachment, and endFrame's move to Present.
+        EXPECT_EQ(static_cast<const VulkanCommandList &>(commands).pipelineBarrierCount(), 2u);
+    }
+    for (int i = 0; i < kFrames; ++i)
+    {
+        const auto frame = device_->beginFrame();
+        ASSERT_TRUE(frame.has_value() && *frame != nullptr);
+        ASSERT_TRUE(device_->endFrame().has_value());
+        // Only endFrame's move to Present, from Undefined.
+        EXPECT_EQ(static_cast<const VulkanCommandList &>(**frame).pipelineBarrierCount(), 1u);
+    }
+    device_.reset();
+    EXPECT_EQ(log_.problems(), "");
+}
+
+// Acceptance (window test): in a later frame than the first, a Load pass recorded while the image is Undefined
+// (with no barrier first, as the frame's first pass) presents with no Warning or Error.
+TEST_F(VulkanDeviceWindowTest, ALoadPassWhileTheImageIsUndefinedInALaterFramePresentsCleanly)
+{
+    ASSERT_TRUE(presentFrames(3));
+    for (int i = 0; i < 6; ++i)
+    {
+        const auto frame = device_->beginFrame();
+        ASSERT_TRUE(frame.has_value() && *frame != nullptr);
+        CommandList &commands = **frame;
+        commands.beginRendering(ColorTarget{LoadOp::Load, StoreOp::Store});
+        commands.bindPipeline(pipeline_);
+        commands.bindVertexBuffer(0, buffer_);
+        commands.draw(3);
+        commands.endRendering();
+        ASSERT_TRUE(device_->endFrame().has_value());
+    }
+    device_.reset();
+    EXPECT_EQ(log_.problems(), "");
+}
+
+// endFrame moves the image to Present only when it is not already there.
+TEST_F(VulkanDeviceWindowTest, AnImageAlreadyPresentIsNotMovedAgainByEndFrame)
+{
+    for (int i = 0; i < 6; ++i)
+    {
+        const auto frame = device_->beginFrame();
+        ASSERT_TRUE(frame.has_value() && *frame != nullptr);
+        CommandList &commands = **frame;
+        if (i % 2 == 0)
+        {
+            commands.barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::Present));
+            ASSERT_TRUE(device_->endFrame().has_value());
+            EXPECT_EQ(static_cast<const VulkanCommandList &>(commands).pipelineBarrierCount(), 1u);
+        }
+        else
+        {
+            commands.beginRendering(ColorTarget{});
+            commands.bindPipeline(pipeline_);
+            commands.bindVertexBuffer(0, buffer_);
+            commands.draw(3);
+            commands.endRendering();
+            commands.barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::Present));
+            ASSERT_TRUE(device_->endFrame().has_value());
+            EXPECT_EQ(static_cast<const VulkanCommandList &>(commands).pipelineBarrierCount(), 2u);
+        }
+    }
+    device_.reset();
+    EXPECT_EQ(log_.problems(), "");
+}
+
+TEST_F(VulkanDeviceWindowTest, BarrierMisuseIsSkippedWithOneErrorMessageEach)
+{
+    const auto frame = device_->beginFrame();
+    ASSERT_TRUE(frame.has_value() && *frame != nullptr);
+    CommandList &commands = **frame;
+    const auto &recorded = static_cast<const VulkanCommandList &>(commands);
+
+    const auto expectOneError = [this](const char *const what) {
+        ASSERT_EQ(log_.messages().size(), 1u) << what << ":\n" << log_.problems();
+        EXPECT_EQ(log_.messages()[0].severity, Severity::Error) << what;
+        log_.clear();
+    };
+
+    commands.barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::Present));
+    ASSERT_EQ(log_.messages().size(), 1u) << log_.problems();
+    EXPECT_NE(log_.messages()[0].text.find("Undefined"), std::string::npos) << log_.messages()[0].text;
+    EXPECT_NE(log_.messages()[0].text.find("ColorAttachment"), std::string::npos) << log_.messages()[0].text;
+    expectOneError("barrier from a state the image is not in");
+    commands.barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::Undefined));
+    expectOneError("barrier to Undefined");
+    commands.barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ShaderRead));
+    expectOneError("barrier moving the swap chain image to ShaderRead");
+    EXPECT_EQ(recorded.pipelineBarrierCount(), 0u);
+
+    commands.beginRendering(ColorTarget{});
+    commands.barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::ColorAttachment));
+    expectOneError("barrier inside a pass");
+    EXPECT_EQ(recorded.pipelineBarrierCount(), 1u); // beginRendering's own
+    commands.endRendering();
+    ASSERT_TRUE(device_->endFrame().has_value());
+
+    commands.barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment));
+    expectOneError("barrier after endFrame");
+
+    ASSERT_TRUE(presentFrames(3));
     device_.reset();
     EXPECT_EQ(log_.problems(), "");
 }

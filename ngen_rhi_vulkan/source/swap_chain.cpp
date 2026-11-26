@@ -155,7 +155,7 @@ namespace ngen::rhi::vulkan
         for (const VkImage image : images)
         {
             // Pushed first so the destructor frees whatever part of it was made.
-            SwapChainImage &entry = swapChain->images_.emplace_back();
+            SwapChainImageResources &entry = swapChain->images_.emplace_back();
             entry.image = image;
 
             VkImageViewCreateInfo viewInfo{};

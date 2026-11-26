@@ -3,7 +3,9 @@
 
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <variant>
 
 namespace ngen::rhi
 {
@@ -12,6 +14,22 @@ namespace ngen::rhi
         std::unexpected<ngen::Error> invalid(std::string message)
         {
             return std::unexpected(ngen::makeError(ngen::ErrorCode::InvalidArgument, std::move(message)));
+        }
+
+        std::string_view name(const ResourceState state)
+        {
+            switch (state)
+            {
+            case ResourceState::Undefined:
+                return "Undefined";
+            case ResourceState::ColorAttachment:
+                return "ColorAttachment";
+            case ResourceState::ShaderRead:
+                return "ShaderRead";
+            case ResourceState::Present:
+                return "Present";
+            }
+            return "an unknown state";
         }
     } // namespace
 
@@ -76,6 +94,27 @@ namespace ngen::rhi
             {
                 return invalid(prefix + "location " + std::to_string(attribute.location) + " is used more than once");
             }
+        }
+        return {};
+    }
+
+    std::expected<void, ngen::Error> validate(const Barrier &barrier, const ResourceState trackedState)
+    {
+        // The swap chain image is only ever rendered to and presented.
+        const bool shaderReadAllowed = std::visit([](const SwapChainImage &) { return false; }, barrier.target);
+        if (!shaderReadAllowed &&
+            (barrier.before == ResourceState::ShaderRead || barrier.after == ResourceState::ShaderRead))
+        {
+            return invalid("barrier: the swap chain image is never read by shaders, so it is never ShaderRead");
+        }
+        if (barrier.after == ResourceState::Undefined)
+        {
+            return invalid("barrier: after must not be Undefined");
+        }
+        if (barrier.before != trackedState)
+        {
+            return invalid("barrier: before is " + std::string(name(barrier.before)) + ", but the target is " +
+                           std::string(name(trackedState)));
         }
         return {};
     }

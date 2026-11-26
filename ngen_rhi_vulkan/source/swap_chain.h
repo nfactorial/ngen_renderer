@@ -35,14 +35,15 @@ namespace ngen::rhi::vulkan
     // Opaque if supported, else the first supported mode.
     [[nodiscard]] VkCompositeAlphaFlagBitsKHR chooseCompositeAlpha(VkCompositeAlphaFlagsKHR supported);
 
-    struct SwapChainImage
+    // One swap chain image and what goes with it. (The RHI's SwapChainImage is the barrier target naming the
+    // image a frame renders to.)
+    struct SwapChainImageResources
     {
         VkImage image = VK_NULL_HANDLE;
         VkImageView view = VK_NULL_HANDLE;
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
         VkSemaphore renderFinished = VK_NULL_HANDLE;
         VkFence inFlight = VK_NULL_HANDLE; // the fence of the frame slot that last rendered this image
-        bool rendered = false;             // a frame has left it in the render passes' target layout
     };
 
     // A swap chain, its image views, one framebuffer and one render-finished semaphore per image. The format,
@@ -76,7 +77,7 @@ namespace ngen::rhi::vulkan
             return extent_;
         }
 
-        [[nodiscard]] std::vector<SwapChainImage> &images()
+        [[nodiscard]] std::vector<SwapChainImageResources> &images()
         {
             return images_;
         }
@@ -88,6 +89,6 @@ namespace ngen::rhi::vulkan
         VkSwapchainKHR swapChain_ = VK_NULL_HANDLE;
         VkFormat format_ = VK_FORMAT_UNDEFINED;
         VkExtent2D extent_{0, 0};
-        std::vector<SwapChainImage> images_;
+        std::vector<SwapChainImageResources> images_;
     };
 } // namespace ngen::rhi::vulkan

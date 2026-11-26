@@ -72,10 +72,22 @@ also be created with no window, for tests.
 - Viewport and scissor are dynamic pipeline state. Every `beginRendering` sets both to the full
   target image, so a `setViewport` or `setScissor` lasts until the end of its pass; one made
   outside a pass is recorded and overridden by the next `beginRendering`.
-- A `Load` pass on a swap chain image no pass has rendered since the swap chain was created
-  uses the `DontCare` pass, because that image's contents and layout are undefined. A frame that
-  records no pass still transitions its image for presentation.
-- On a `WindowSupport::None` device, render passes end in `COLOR_ATTACHMENT_OPTIMAL`.
+- A `Load` pass while the swap chain image's tracked state is `Undefined` uses the `DontCare`
+  pass, because its contents are undefined; the image keeps no record of being rendered across
+  frames.
+- Every render pass starts and ends with its image in `COLOR_ATTACHMENT_OPTIMAL`. A pass whose
+  load is `Load` keeps the image's contents, and any other load discards them. The image's
+  layout changes only through barriers: those `barrier` records, the one `beginRendering` makes
+  for itself, and `endFrame`'s transition. Each render pass keeps a subpass dependency from
+  `VK_SUBPASS_EXTERNAL`, so a pass that follows another with no barrier between them is still
+  ordered after it.
+- Each barrier is one `vkCmdPipelineBarrier` with one image barrier, mapping each state to a
+  layout, a stage and an access mask: `Undefined` → `UNDEFINED`, `COLOR_ATTACHMENT_OUTPUT`,
+  none; `ColorAttachment` → `COLOR_ATTACHMENT_OPTIMAL`, `COLOR_ATTACHMENT_OUTPUT`, colour
+  attachment read and write; `ShaderRead` → `SHADER_READ_ONLY_OPTIMAL`, `FRAGMENT_SHADER`,
+  shader read; `Present` → `PRESENT_SRC_KHR` (`COLOR_ATTACHMENT_OPTIMAL` on a
+  `WindowSupport::None` device), `BOTTOM_OF_PIPE`, none. A barrier from `Undefined` waits on
+  `COLOR_ATTACHMENT_OUTPUT`, because the acquire semaphore's wait is at that stage.
 - `VulkanDevice` and its command list are `final` and derive directly from `ngen::rhi::Device`
   and `ngen::rhi::CommandList`.
 - The swap chain prefers `B8G8R8A8_UNORM` with sRGB non-linear colour space, else the first
@@ -160,7 +172,8 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
   (`swapChainSize()`); after `onSuspended`, `beginFrame` returns `nullptr`; after `onResumed`
   with the window's handles, it presents 3 more frames. No `Warning` or `Error` message reaches
   the sink.
-
-## Pending changes
-
-### Barriers  (in [RHI](rhi.md))
+- A frame that records `barrier({SwapChainImage, Undefined, ColorAttachment})`, a `Clear` pass,
+  `barrier({SwapChainImage, ColorAttachment, ColorAttachment})` and a `Load` pass that draws the
+  test pipeline presents with no `Warning` or `Error` message; so does a frame that records
+  `beginRendering` with no barrier first, one that records no pass, and, in a later frame than
+  the first, a `Load` pass recorded while the image is `Undefined`.

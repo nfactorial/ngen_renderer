@@ -23,10 +23,10 @@ built on the RHI can be tested without a GPU.
 - The abstract `CommandList`: rendering to the swap chain image, binding, and drawing.
 - `FakeDevice` and its recorded commands.
 - The device's message sink, through which every backend reports diagnostics.
+- Barriers on the swap chain image, and the resource states they move between.
 
 **Out (non-goals):**
-- Textures, samplers, descriptor sets, index buffers, compute, and barriers between passes
-  (later milestones).
+- Textures, samplers, descriptor sets, index buffers and compute (later milestones).
 - Recording on more than one thread.
 - Choosing which backend to create: the application constructs the backend it wants.
 
@@ -105,6 +105,17 @@ The plain values that say what to create.
 - `ColorTarget` compares with `==`.
 - `enum class LoadOp { Load, Clear, DontCare }`, `enum class StoreOp { Store, DontCare }`
 - `struct ColorTarget { LoadOp load = Clear; StoreOp store = Store; std::array<float, 4> clearColor = {0, 0, 0, 1}; }`
+- `enum class ResourceState { Undefined, ColorAttachment, ShaderRead, Present }`: how a
+  resource is used. `Undefined` means its contents may be discarded.
+- `struct SwapChainImage {}`: names this frame's swap chain image, comparable with `==`.
+- `using BarrierTarget = std::variant<SwapChainImage>`: what a barrier applies to. Backends
+  `std::visit` it, so a target added later fails to compile wherever it is unhandled.
+- `struct Barrier { BarrierTarget target; ResourceState before; ResourceState after; }`,
+  comparable with `==`.
+- `std::expected<void, ngen::Error> validate(const Barrier&, ResourceState trackedState)`: the
+  barrier rules below, for every backend to share. A barrier breaking several rules gets one
+  error, checked in order: `ShaderRead` on the swap chain image, `after` of `Undefined`, then
+  `before` not matching `trackedState`.
 
 **Requirements:**
 - A buffer `size` is above 0, and `usage` is non-empty with no unknown bits.
@@ -177,6 +188,9 @@ The abstract recorder for one frame's commands.
 - `void bindPipeline(PipelineHandle)`
 - `void bindVertexBuffer(uint32_t binding, BufferHandle, uint64_t offset = 0)`
 - `void draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0)`
+- `void barrier(const Barrier&)`: makes every earlier use of the target in `before` finish
+  before any later use in `after`, and changes its state to `after`. A barrier whose `before`
+  and `after` are both `ColorAttachment` orders one pass's colour writes before the next's.
 
 **Requirements:**
 - Misuse skips the command and sends an `Error` message to the sink:
@@ -184,7 +198,16 @@ The abstract recorder for one frame's commands.
   - `draw`, `bindPipeline` or `bindVertexBuffer` outside `beginRendering`…`endRendering`;
   - `beginRendering` while rendering, or `endRendering` while not rendering;
   - `bindVertexBuffer` with a buffer lacking `BufferUsage::Vertex`, or an offset at or past the
-    buffer's size.
+    buffer's size;
+  - `barrier` inside `beginRendering`…`endRendering`; `barrier` whose `before` is not the
+    target's tracked state (the message names both states); `barrier` with `after` of
+    `Undefined`; `barrier` on the swap chain image with `before` or `after` of `ShaderRead`,
+    because the swap chain image is never read by shaders.
+- The command list tracks the swap chain image's state. It is `Undefined` at `beginFrame`, and
+  each `barrier` on it leaves it in `after`.
+- `beginRendering` on an image that is not in `ColorAttachment` first moves it there from its
+  tracked state, as a barrier would; a `beginRendering` that fails makes no transition.
+- `endFrame` moves the image from its tracked state to `Present`, unless it is already there.
 - `setViewport` and `setScissor` may be called anywhere in a frame.
 - `endFrame` with rendering still open sends an `Error` message and still submits.
 - A null or stale handle passed to a command skips that command and sends an `Error` message
@@ -215,6 +238,9 @@ code built on the RHI.
 - `attachWindow` accepts any `NativeWindow`; `beginFrame` returns `nullptr` before it.
 - It records only the commands actually called (no default viewport or scissor), and keeps a
   buffer's size and usage but not its contents.
+- `barrier` is recorded as the `Barrier` it was given. The transition `beginRendering` makes for
+  itself is recorded as a `Barrier` just before the `beginRendering` command. The transition
+  `endFrame` makes is not recorded.
 - `FakeDevice` and its command list derive from `Device` and `CommandList` directly; a backend
   adds its own classes beneath the same bases.
 
@@ -222,137 +248,15 @@ code built on the RHI.
 - A buffer destroyed during frame 1 is still counted by `liveBuffers()` after `endFrame`; after
   `completeFrames()` and the next `beginFrame`, it is not.
 - A frame that records `beginRendering`, `bindPipeline(p)`, `bindVertexBuffer(0, b)`, `draw(3)`,
-  `endRendering` appears in `frames()` as exactly those five commands with those arguments.
+  `endRendering` appears in `frames()` as exactly `Barrier{SwapChainImage, Undefined, ColorAttachment}`
+  then those five commands, with those arguments.
+- A frame recording `barrier({SwapChainImage, Undefined, ColorAttachment})`, a pass,
+  `barrier({SwapChainImage, ColorAttachment, ColorAttachment})` and a second pass records both
+  barriers and no other.
+- `barrier({SwapChainImage, ColorAttachment, Present})` at the start of a frame records nothing
+  and sends one `Error` message naming `Undefined` and `ColorAttachment`.
 - `draw(3)` before `beginRendering` records nothing and sends one `Error` message to the sink.
 - After `onSuspended`, `beginFrame` returns `nullptr`; after `onResumed`, it returns a command list.
 - `createPipeline` with an attribute naming binding 1 when only binding 0 exists returns
   `InvalidArgument`.
 
-## Pending changes
-
-### Barriers  [ready]
-
-**Blocked by:** [RHI Vulkan backend](rhi_vulkan.md)
-**Milestone:** [Render graph and stages](../README.md)
-
-**Brief:** Adds a barrier command to `CommandList`: it moves the frame's swap chain image from
-one resource state to another, with the synchronisation between them. Code above the RHI then
-owns every transition between passes; `beginRendering` still moves an image that is not a
-colour attachment itself, and `endFrame` still makes it presentable. `FakeDevice` records
-barriers, and the Vulkan backend's render passes stop changing the image's layout.
-
-**Changes:**
-- **Replace** (Scope, Out): "Textures, samplers, descriptor sets, index buffers, compute, and
-  barriers between passes (later milestones)." → "Textures, samplers, descriptor sets, index
-  buffers and compute (later milestones)."
-- **Add** (Scope, In): "Barriers on the swap chain image, and the resource states they move
-  between."
-- **Add** (Descriptions, Interface):
-  - `enum class ResourceState { Undefined, ColorAttachment, ShaderRead, Present }`: how a
-    resource is used. `Undefined` means its contents may be discarded.
-  - `struct SwapChainImage {}`: names this frame's swap chain image, comparable with `==`.
-  - `using BarrierTarget = std::variant<SwapChainImage>`: what a barrier applies to (textures
-    join it later).
-  - `struct Barrier { BarrierTarget target; ResourceState before; ResourceState after; }`,
-    comparable with `==`.
-- **Add** (CommandList, Interface): `void barrier(const Barrier&)`: makes every earlier use of
-  the target in `before` finish before any later use in `after`, and changes its state to
-  `after`. A barrier whose `before` and `after` are both `ColorAttachment` orders one pass's
-  colour writes before the next's.
-- **Add** (CommandList, Requirements):
-  - The command list tracks the swap chain image's state. It is `Undefined` at `beginFrame`,
-    and each `barrier` on it leaves it in `after`.
-  - `beginRendering` on an image that is not in `ColorAttachment` first moves it there from
-    its tracked state, as a barrier would.
-  - `endFrame` moves the image from its tracked state to `Present`, unless it is already
-    there.
-- **Add** (CommandList, Requirements, misuse list): "`barrier` inside
-  `beginRendering`…`endRendering`; `barrier` whose `before` is not the target's tracked state
-  (the message names both states); `barrier` with `after` of `Undefined`; `barrier` on the swap
-  chain image with `before` or `after` of `ShaderRead`, because the swap chain image is never
-  read by shaders."
-- **Add** (FakeDevice, Requirements): "`barrier` is recorded as the `Barrier` it was given. The
-  transition `beginRendering` makes for itself is recorded as a `Barrier` just before the
-  `beginRendering` command. The transition `endFrame` makes is not recorded."
-- **Replace** (FakeDevice, Acceptance): "A frame that records `beginRendering`,
-  `bindPipeline(p)`, `bindVertexBuffer(0, b)`, `draw(3)`, `endRendering` appears in `frames()` as
-  exactly those five commands with those arguments." → "A frame that records `beginRendering`,
-  `bindPipeline(p)`, `bindVertexBuffer(0, b)`, `draw(3)`, `endRendering` appears in `frames()` as
-  exactly `Barrier{SwapChainImage, Undefined, ColorAttachment}` then those five commands, with
-  those arguments."
-- **Add** (FakeDevice, Acceptance):
-  - "A frame recording `barrier({SwapChainImage, Undefined, ColorAttachment})`, a pass,
-    `barrier({SwapChainImage, ColorAttachment, ColorAttachment})` and a second pass records
-    both barriers and no other."
-  - "`barrier({SwapChainImage, ColorAttachment, Present})` at the start of a frame records
-    nothing and sends one `Error` message naming `Undefined` and `ColorAttachment`."
-  - "`barrier` between `beginRendering` and `endRendering` records nothing and sends one
-    `Error` message."
-- **Replace** (RHI Vulkan backend › Constraints): "A `Load` pass on a swap chain image no pass
-  has rendered since the swap chain was created uses the `DontCare` pass, because that image's
-  contents and layout are undefined. A frame that records no pass still transitions its image
-  for presentation." → "A `Load` pass while the swap chain image's tracked state is `Undefined`
-  uses the `DontCare` pass, because its contents are undefined; the image keeps no record of
-  being rendered across frames."
-- **Replace** (RHI Vulkan backend › Constraints): "On a `WindowSupport::None` device, render
-  passes end in `COLOR_ATTACHMENT_OPTIMAL`." → "Every render pass starts and ends with its image
-  in `COLOR_ATTACHMENT_OPTIMAL`. A pass whose load is `Load` keeps the image's contents, and any
-  other load discards them. The image's layout changes only through barriers: those `barrier`
-  records, the one `beginRendering` makes for itself, and `endFrame`'s transition."
-- **Add** (RHI Vulkan backend › Constraints): "Each barrier is one `vkCmdPipelineBarrier` with
-  one image barrier, mapping each state to a layout, a stage and an access mask: `Undefined` →
-  `UNDEFINED`, `COLOR_ATTACHMENT_OUTPUT`, none; `ColorAttachment` → `COLOR_ATTACHMENT_OPTIMAL`,
-  `COLOR_ATTACHMENT_OUTPUT`, colour attachment read and write; `ShaderRead` →
-  `SHADER_READ_ONLY_OPTIMAL`, `FRAGMENT_SHADER`, shader read; `Present` → `PRESENT_SRC_KHR`
-  (`COLOR_ATTACHMENT_OPTIMAL` on a `WindowSupport::None` device), `BOTTOM_OF_PIPE`, none. A
-  barrier from `Undefined` waits on `COLOR_ATTACHMENT_OUTPUT`, because the acquire semaphore's
-  wait is at that stage."
-- **Add** (RHI Vulkan backend › Acceptance, window test): "A frame that records
-  `barrier({SwapChainImage, Undefined, ColorAttachment})`, a `Clear` pass,
-  `barrier({SwapChainImage, ColorAttachment, ColorAttachment})` and a `Load` pass that draws the
-  test pipeline presents with no `Warning` or `Error` message; so does a frame that records
-  `beginRendering` with no barrier first, and so does one that records no pass."
-- **Add** (RHI Vulkan backend › Acceptance, window test): "In a later frame than the first, a
-  `Load` pass recorded while the image is `Undefined` (no barrier, or the first pass of the
-  frame) presents with no `Warning` or `Error` message, as the `DontCare` pass does."
-
-**Read first:** `ngen_rhi/include/ngen/rhi/command_list.h`, `ngen_rhi/source/fake_device.cpp`,
-`ngen_rhi_vulkan/source/command_list.cpp`, `ngen_rhi_vulkan/source/render_pass_cache.cpp`,
-`ngen_rhi_vulkan/source/swap_chain.cpp`, `ngen_rhi_vulkan/source/swap_chain.h`,
-`ngen_rhi_vulkan/source/device_impl.cpp`, and the Vulkan backend's tests.
-
-**Touchpoints:**
-
-| Path / symbol | Create / modify | Kind |
-|---|---|---|
-| ngen_rhi/include/ngen/rhi/descriptions.h `ResourceState`, `SwapChainImage`, `BarrierTarget`, `Barrier` | modify | code |
-| ngen_rhi/include/ngen/rhi/command_list.h `CommandList::barrier` | modify | code |
-| ngen_rhi/include/ngen/rhi/fake_device.h, ngen_rhi/source/fake_device.cpp | modify | code |
-| ngen_rhi/tests/fake_device_tests.cpp | modify | code |
-| ngen_rhi_vulkan/source/command_list.cpp, command_list.h | modify | code |
-| ngen_rhi_vulkan/source/render_pass_cache.cpp, render_pass_cache.h | modify | code |
-| ngen_rhi_vulkan/source/device_impl.cpp (constructs `RenderPassCache`) | modify | code |
-| ngen_rhi_vulkan/source/swap_chain.h `SwapChainImage::rendered` (removed) | modify | code |
-| the Vulkan backend's window test | modify | code |
-
-**Fixed:** the names and shapes in *Changes*. `BarrierTarget` is a `std::variant` that the
-backends `std::visit`, so a target added later is a compile error wherever it is unhandled.
-`Barrier` joins `RecordedCommand`.
-**Free:** how the state is tracked, how the render pass cache is keyed once layouts are fixed,
-and the tests.
-**Guardrails:**
-- The render pass's subpass dependency from `VK_SUBPASS_EXTERNAL` stays, so a pass that follows
-  another with no barrier between them is still ordered after it.
-- `endFrame`'s transition to `Present` starts from the tracked state, which is `Undefined` in a
-  frame that drew nothing.
-- Validation stays silent in the smoke and window tests; any message fails them.
-
-**Done when:**
-- *Agent-checkable:* every requirement and acceptance criterion in Changes is covered by a
-  test. The build and tests pass, and existing tests still pass, each checking what it
-  checked; the FakeDevice frame test changes only by the barrier `beginRendering` now records.
-- *Human check:* run the example: the triangle still draws, resizes, minimises and restores,
-  with nothing printed.
-
-**Delegation:** deep implementer, full review: it changes the Vulkan backend's layout handling
-on the frame path, and every later pass relies on it.

@@ -314,8 +314,12 @@ TEST_F(FakeDeviceTest, RecordedFrameHoldsExactlyTheCallsWithTheirArguments)
 
     ASSERT_EQ(device.frames().size(), 1u);
     const std::vector<RecordedCommand> expected{
-        BeginRenderingCommand{ColorTarget{}}, BindPipelineCommand{pipeline}, BindVertexBufferCommand{0, buffer, 0},
-        DrawCommand{3, 1, 0, 0},              EndRenderingCommand{},
+        Barrier{SwapChainImage{}, ResourceState::Undefined, ResourceState::ColorAttachment},
+        BeginRenderingCommand{ColorTarget{}},
+        BindPipelineCommand{pipeline},
+        BindVertexBufferCommand{0, buffer, 0},
+        DrawCommand{3, 1, 0, 0},
+        EndRenderingCommand{},
     };
     EXPECT_EQ(device.frames()[0], expected);
     EXPECT_TRUE(messages.empty());
@@ -333,6 +337,7 @@ TEST_F(FakeDeviceTest, ViewportAndScissorAreRecordedWithTheirArguments)
     ASSERT_TRUE(device.endFrame().has_value());
 
     const std::vector<RecordedCommand> expected{
+        Barrier{SwapChainImage{}, ResourceState::Undefined, ResourceState::ColorAttachment},
         BeginRenderingCommand{ColorTarget{LoadOp::Clear, StoreOp::Store, {1, 0, 0, 1}}},
         SetViewportCommand{1, 2, 3, 4, 0, 1},
         SetScissorCommand{-5, 6, 7, 8},
@@ -356,8 +361,8 @@ TEST_F(FakeDeviceTest, FramesAreKeptInOrder)
     }
 
     ASSERT_EQ(device.frames().size(), 2u);
-    EXPECT_EQ(std::get<DrawCommand>(device.frames()[0][1]).vertexCount, 3u);
-    EXPECT_EQ(std::get<DrawCommand>(device.frames()[1][1]).vertexCount, 6u);
+    EXPECT_EQ(std::get<DrawCommand>(device.frames()[0][2]).vertexCount, 3u);
+    EXPECT_EQ(std::get<DrawCommand>(device.frames()[1][2]).vertexCount, 6u);
 }
 
 TEST_F(FakeDeviceTest, DrawBeforeBeginRenderingRecordsNothingAndSendsOneError)
@@ -387,7 +392,7 @@ TEST_F(FakeDeviceTest, BindCommandsOutsideRenderingAreSkippedWithAnError)
     commands->draw(3);
     ASSERT_TRUE(device.endFrame().has_value());
 
-    EXPECT_EQ(device.frames()[0].size(), 2u); // only beginRendering and endRendering
+    EXPECT_EQ(device.frames()[0].size(), 3u); // only beginRendering (with its barrier) and endRendering
     EXPECT_EQ(errorCount(), 3u);
 }
 
@@ -409,7 +414,7 @@ TEST_F(FakeDeviceTest, NullOrStaleHandlesSkipTheCommandWithAnErrorNamingIt)
     commands->endRendering();
     ASSERT_TRUE(device.endFrame().has_value());
 
-    EXPECT_EQ(device.frames()[0].size(), 2u);
+    EXPECT_EQ(device.frames()[0].size(), 3u); // beginRendering (with its barrier) and endRendering
     ASSERT_EQ(messages.size(), 4u);
     EXPECT_NE(messages[0].text.find("pipeline"), std::string::npos);
     EXPECT_NE(messages[1].text.find("pipeline"), std::string::npos);
@@ -432,7 +437,7 @@ TEST_F(FakeDeviceTest, BindVertexBufferWithoutVertexUsageIsSkippedWithAnError)
     commands->endRendering();
     ASSERT_TRUE(device.endFrame().has_value());
 
-    EXPECT_EQ(device.frames()[0].size(), 2u);
+    EXPECT_EQ(device.frames()[0].size(), 3u); // beginRendering (with its barrier) and endRendering
     ASSERT_EQ(messages.size(), 1u);
     EXPECT_EQ(messages[0].severity, Severity::Error);
     EXPECT_NE(messages[0].text.find("Vertex"), std::string::npos);
@@ -451,7 +456,7 @@ TEST_F(FakeDeviceTest, BindVertexBufferWithOffsetAtOrPastTheEndIsSkippedWithAnEr
     commands->endRendering();
     ASSERT_TRUE(device.endFrame().has_value());
 
-    EXPECT_EQ(device.frames()[0].size(), 3u); // begin, the offset 63 bind, end
+    EXPECT_EQ(device.frames()[0].size(), 4u); // begin (with its barrier), the offset 63 bind, end
     EXPECT_EQ(errorCount(), 2u);
 }
 
@@ -480,7 +485,203 @@ TEST_F(FakeDeviceTest, CommandsAfterEndFrameAreSkippedWithAnError)
     next->endRendering();
     ASSERT_TRUE(device.endFrame().has_value());
     EXPECT_EQ(errorCount(), 5u);
-    EXPECT_EQ(device.frames()[1].size(), 3u);
+    EXPECT_EQ(device.frames()[1].size(), 4u); // begin (with its barrier), draw, end
+}
+
+// Barriers
+
+namespace
+{
+    Barrier swapChainBarrier(const ResourceState before, const ResourceState after)
+    {
+        return Barrier{SwapChainImage{}, before, after};
+    }
+} // namespace
+
+TEST_F(FakeDeviceTest, TwoPassesWithExplicitBarriersRecordBothBarriersAndNoOther)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment));
+    commands->beginRendering(ColorTarget{});
+    commands->endRendering();
+    commands->barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::ColorAttachment));
+    commands->beginRendering(ColorTarget{LoadOp::Load, StoreOp::Store});
+    commands->endRendering();
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    const std::vector<RecordedCommand> expected{
+        swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment),
+        BeginRenderingCommand{ColorTarget{}},
+        EndRenderingCommand{},
+        swapChainBarrier(ResourceState::ColorAttachment, ResourceState::ColorAttachment),
+        BeginRenderingCommand{ColorTarget{LoadOp::Load, StoreOp::Store}},
+        EndRenderingCommand{},
+    };
+    EXPECT_EQ(device.frames()[0], expected);
+    EXPECT_TRUE(messages.empty());
+}
+
+TEST_F(FakeDeviceTest, BarrierFromTheWrongStateRecordsNothingAndNamesBothStates)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    commands->barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::Present));
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    EXPECT_TRUE(device.frames()[0].empty());
+    ASSERT_EQ(messages.size(), 1u);
+    EXPECT_EQ(messages[0].severity, Severity::Error);
+    EXPECT_NE(messages[0].text.find("Undefined"), std::string::npos) << messages[0].text;
+    EXPECT_NE(messages[0].text.find("ColorAttachment"), std::string::npos) << messages[0].text;
+}
+
+TEST_F(FakeDeviceTest, BarrierInsideRenderingRecordsNothingAndSendsOneError)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    commands->beginRendering(ColorTarget{});
+    commands->barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::ColorAttachment));
+    commands->endRendering();
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    const std::vector<RecordedCommand> expected{
+        swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment),
+        BeginRenderingCommand{ColorTarget{}},
+        EndRenderingCommand{},
+    };
+    EXPECT_EQ(device.frames()[0], expected);
+    ASSERT_EQ(messages.size(), 1u);
+    EXPECT_EQ(messages[0].severity, Severity::Error);
+}
+
+TEST_F(FakeDeviceTest, BarrierToUndefinedIsSkippedWithAnError)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::Undefined));
+    commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment));
+    commands->barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::Undefined));
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    const std::vector<RecordedCommand> expected{
+        swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment),
+    };
+    EXPECT_EQ(device.frames()[0], expected);
+    ASSERT_EQ(messages.size(), 2u);
+    for (const Message &message : messages)
+    {
+        EXPECT_EQ(message.severity, Severity::Error);
+        EXPECT_NE(message.text.find("Undefined"), std::string::npos) << message.text;
+    }
+}
+
+TEST_F(FakeDeviceTest, BarrierMovingTheSwapChainImageToOrFromShaderReadIsSkippedWithAnError)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ShaderRead));
+    commands->barrier(swapChainBarrier(ResourceState::ShaderRead, ResourceState::ColorAttachment));
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    EXPECT_TRUE(device.frames()[0].empty());
+    ASSERT_EQ(messages.size(), 2u);
+    for (const Message &message : messages)
+    {
+        EXPECT_EQ(message.severity, Severity::Error);
+        EXPECT_NE(message.text.find("ShaderRead"), std::string::npos) << message.text;
+    }
+}
+
+TEST_F(FakeDeviceTest, EachBarrierLeavesTheImageInItsAfterState)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::Present));
+    commands->barrier(swapChainBarrier(ResourceState::Present, ResourceState::ColorAttachment));
+    commands->barrier(swapChainBarrier(ResourceState::ColorAttachment, ResourceState::Present));
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    // endFrame's transition to Present is not recorded.
+    const std::vector<RecordedCommand> expected{
+        swapChainBarrier(ResourceState::Undefined, ResourceState::Present),
+        swapChainBarrier(ResourceState::Present, ResourceState::ColorAttachment),
+        swapChainBarrier(ResourceState::ColorAttachment, ResourceState::Present),
+    };
+    EXPECT_EQ(device.frames()[0], expected);
+    EXPECT_TRUE(messages.empty());
+}
+
+TEST_F(FakeDeviceTest, BeginRenderingMovesTheImageFromItsTrackedStateOnlyWhenNotAColorAttachment)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::Present));
+    commands->beginRendering(ColorTarget{});
+    commands->endRendering();
+    commands->beginRendering(ColorTarget{}); // already a ColorAttachment: no barrier
+    commands->endRendering();
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    const std::vector<RecordedCommand> expected{
+        swapChainBarrier(ResourceState::Undefined, ResourceState::Present),
+        swapChainBarrier(ResourceState::Present, ResourceState::ColorAttachment),
+        BeginRenderingCommand{ColorTarget{}},
+        EndRenderingCommand{},
+        BeginRenderingCommand{ColorTarget{}},
+        EndRenderingCommand{},
+    };
+    EXPECT_EQ(device.frames()[0], expected);
+    EXPECT_TRUE(messages.empty());
+}
+
+TEST_F(FakeDeviceTest, TheImageIsUndefinedAtEveryBeginFrame)
+{
+    attach();
+    for (int frame = 0; frame < 3; ++frame)
+    {
+        CommandList *const commands = begin();
+        ASSERT_NE(commands, nullptr);
+        // The frame before left the image a ColorAttachment (and endFrame made it Present).
+        commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment));
+        commands->beginRendering(ColorTarget{});
+        commands->endRendering();
+        ASSERT_TRUE(device.endFrame().has_value());
+        device.completeFrames();
+    }
+
+    const std::vector<RecordedCommand> expected{
+        swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment),
+        BeginRenderingCommand{ColorTarget{}},
+        EndRenderingCommand{},
+    };
+    ASSERT_EQ(device.frames().size(), 3u);
+    for (const std::vector<RecordedCommand> &frame : device.frames())
+    {
+        EXPECT_EQ(frame, expected);
+    }
+    EXPECT_TRUE(messages.empty());
+}
+
+TEST_F(FakeDeviceTest, BarrierAfterEndFrameIsSkippedWithAnError)
+{
+    attach();
+    CommandList *const commands = begin();
+    ASSERT_NE(commands, nullptr);
+    ASSERT_TRUE(device.endFrame().has_value());
+
+    commands->barrier(swapChainBarrier(ResourceState::Undefined, ResourceState::ColorAttachment));
+    ASSERT_EQ(messages.size(), 1u);
+    EXPECT_EQ(messages[0].severity, Severity::Error);
+    EXPECT_NE(messages[0].text.find("after endFrame"), std::string::npos);
+    EXPECT_TRUE(device.frames()[0].empty());
 }
 
 // Deferred destruction

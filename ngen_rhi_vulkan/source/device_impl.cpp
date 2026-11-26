@@ -57,9 +57,7 @@ namespace ngen::rhi::vulkan
 
     DeviceImpl::DeviceImpl(std::unique_ptr<VulkanContext> context)
         : context_(std::move(context)),
-          renderPasses_(std::make_unique<RenderPassCache>(
-              context_->device(), context_->windowExpected() ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-                                                             : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)),
+          renderPasses_(std::make_unique<RenderPassCache>(context_->device())),
           commandList_(std::make_unique<VulkanCommandList>(*this))
     {
     }
@@ -580,7 +578,7 @@ namespace ngen::rhi::vulkan
         }
 
         // An earlier frame from the other slot may still be rendering to this image.
-        SwapChainImage &image = swapChain_->images()[imageIndex_];
+        SwapChainImageResources &image = swapChain_->images()[imageIndex_];
         if (image.inFlight != VK_NULL_HANDLE && image.inFlight != slot.inFlight)
         {
             if (const VkResult result = vkWaitForFences(device, 1, &image.inFlight, VK_TRUE, UINT64_MAX);
@@ -620,7 +618,7 @@ namespace ngen::rhi::vulkan
         recording_ = false;
 
         FrameSlot &slot = slots_[slotIndex_];
-        SwapChainImage &image = swapChain_->images()[imageIndex_];
+        SwapChainImageResources &image = swapChain_->images()[imageIndex_];
         commandList_->finish();
         auto outcome = submitAndPresent(slot, image);
 
@@ -633,7 +631,8 @@ namespace ngen::rhi::vulkan
         return outcome;
     }
 
-    std::expected<void, ngen::Error> DeviceImpl::submitAndPresent(FrameSlot &slot, SwapChainImage &image)
+    std::expected<void, ngen::Error> DeviceImpl::submitAndPresent(FrameSlot &slot,
+                                                                  SwapChainImageResources &image)
     {
         const VkDevice device = context_->device();
         if (const VkResult result = vkEndCommandBuffer(slot.commandBuffer); result != VK_SUCCESS)

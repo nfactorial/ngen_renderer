@@ -114,3 +114,41 @@ TEST(ColorTarget, DefaultsMatchTheSpec)
     EXPECT_EQ(target.store, StoreOp::Store);
     EXPECT_EQ(target.clearColor, (std::array<float, 4>{0, 0, 0, 1}));
 }
+
+TEST(Barrier, FromTheTrackedStateToAnyOtherUseIsValid)
+{
+    EXPECT_TRUE(validate(Barrier{SwapChainImage{}, ResourceState::Undefined, ResourceState::ColorAttachment},
+                         ResourceState::Undefined)
+                    .has_value());
+    EXPECT_TRUE(validate(Barrier{SwapChainImage{}, ResourceState::ColorAttachment, ResourceState::ColorAttachment},
+                         ResourceState::ColorAttachment)
+                    .has_value());
+    EXPECT_TRUE(validate(Barrier{SwapChainImage{}, ResourceState::Present, ResourceState::Present},
+                         ResourceState::Present)
+                    .has_value());
+}
+
+TEST(Barrier, BeforeThatIsNotTheTrackedStateIsInvalidNamingBothStates)
+{
+    const auto result = validate(Barrier{SwapChainImage{}, ResourceState::Present, ResourceState::ColorAttachment},
+                                 ResourceState::ColorAttachment);
+    expectInvalidNaming(result, "Present");
+    expectInvalidNaming(result, "ColorAttachment");
+}
+
+TEST(Barrier, AfterOfUndefinedIsInvalid)
+{
+    expectInvalidNaming(validate(Barrier{SwapChainImage{}, ResourceState::ColorAttachment, ResourceState::Undefined},
+                                 ResourceState::ColorAttachment),
+                        "Undefined");
+}
+
+TEST(Barrier, TheSwapChainImageIsNeverShaderRead)
+{
+    expectInvalidNaming(validate(Barrier{SwapChainImage{}, ResourceState::Undefined, ResourceState::ShaderRead},
+                                 ResourceState::Undefined),
+                        "ShaderRead");
+    expectInvalidNaming(validate(Barrier{SwapChainImage{}, ResourceState::ShaderRead, ResourceState::Present},
+                                 ResourceState::ShaderRead),
+                        "ShaderRead");
+}

@@ -117,7 +117,8 @@ namespace ngen::rhi::vulkan
         void suspend();
 
         // endFrame's work once the command list has finished: submit, then present.
-        [[nodiscard]] std::expected<void, ngen::Error> submitAndPresent(FrameSlot &slot, SwapChainImage &image);
+        [[nodiscard]] std::expected<void, ngen::Error> submitAndPresent(FrameSlot &slot,
+                                                                        SwapChainImageResources &image);
 
         // For a failure after a successful acquire: unless the device was lost, flags recreation (releasing the
         // acquired image) and submits an empty batch waiting on the slot's semaphore and signalling its fence,

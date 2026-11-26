@@ -1,5 +1,6 @@
 // Spec: rhi-vulkan. Behaviour changes go through it.
-// The backend's selection rules, checked without a device.
+// The backend's selection rules and barrier mapping, checked without a device.
+#include "command_list.h"
 #include "device_selection.h"
 #include "swap_chain.h"
 
@@ -163,4 +164,44 @@ TEST(SwapChainChoice, CompositeAlphaIsOpaqueWhenSupportedElseTheFirstSupported)
     EXPECT_EQ(chooseCompositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR | VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR),
               VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
     EXPECT_EQ(chooseCompositeAlpha(VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR), VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR);
+}
+
+TEST(BarrierMapping, EachStateMapsToItsLayoutStageAndAccess)
+{
+    using ngen::rhi::ResourceState;
+    const auto expectUse = [](const ImageStateUse &use, const VkImageLayout layout, const VkPipelineStageFlags stage,
+                              const VkAccessFlags access, const char *const state) {
+        EXPECT_EQ(use.layout, layout) << state;
+        EXPECT_EQ(use.stage, stage) << state;
+        EXPECT_EQ(use.access, access) << state;
+    };
+    for (const bool presents : {true, false})
+    {
+        expectUse(imageStateUse(ResourceState::Undefined, presents), VK_IMAGE_LAYOUT_UNDEFINED,
+                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, "Undefined");
+        expectUse(imageStateUse(ResourceState::ColorAttachment, presents), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, "ColorAttachment");
+        expectUse(imageStateUse(ResourceState::ShaderRead, presents), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, "ShaderRead");
+    }
+    expectUse(imageStateUse(ResourceState::Present, true), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+              VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, "Present");
+    // PRESENT_SRC_KHR needs VK_KHR_swapchain, which a WindowSupport::None device does not enable.
+    expectUse(imageStateUse(ResourceState::Present, false), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+              VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, "Present without a window");
+}
+
+TEST(RenderPassChoice, ALoadPassWhileTheImageIsUndefinedUsesTheDontCarePass)
+{
+    using ngen::rhi::LoadOp;
+    using ngen::rhi::ResourceState;
+    EXPECT_EQ(passLoad(LoadOp::Load, ResourceState::Undefined), LoadOp::DontCare);
+    EXPECT_EQ(passLoad(LoadOp::Load, ResourceState::ColorAttachment), LoadOp::Load);
+    EXPECT_EQ(passLoad(LoadOp::Load, ResourceState::Present), LoadOp::Load);
+    for (const ResourceState state : {ResourceState::Undefined, ResourceState::ColorAttachment, ResourceState::Present})
+    {
+        EXPECT_EQ(passLoad(LoadOp::Clear, state), LoadOp::Clear);
+        EXPECT_EQ(passLoad(LoadOp::DontCare, state), LoadOp::DontCare);
+    }
 }

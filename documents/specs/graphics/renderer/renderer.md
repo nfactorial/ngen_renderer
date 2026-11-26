@@ -2,7 +2,7 @@
 
 > - **Template:** v1 · **ID:** renderer
 > - **Status:** ready
-> - **Blocked by:** [Render graph](render_graph/render_graph.md), [RHI](../rhi.md) › `Barriers`
+> - **Blocked by:** [Render graph](render_graph/render_graph.md), [RHI](../rhi.md)
 > - **Background (not needed to build):** Feature: [Renderer](README.md) · Design: [renderer](../../../design/renderer.md) · Technical: [renderer](../../../technical/renderer.md) · Inputs: none
 
 ## Goal

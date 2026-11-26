@@ -16,11 +16,28 @@ namespace ngen::rhi::vulkan
 {
     class DeviceImpl;
 
+    // How an image is used in a ResourceState: the layout, pipeline stage and access mask a barrier maps the state
+    // to.
+    struct ImageStateUse
+    {
+        VkImageLayout layout;
+        VkPipelineStageFlags stage;
+        VkAccessFlags access;
+    };
+
+    // The use a barrier maps a state to. Present is PRESENT_SRC_KHR on a device that presents, and
+    // COLOR_ATTACHMENT_OPTIMAL on one that never does (PRESENT_SRC_KHR needs VK_KHR_swapchain).
+    [[nodiscard]] ImageStateUse imageStateUse(ResourceState state, bool presents);
+
+    // The load op of the render pass beginRendering uses: a Load while the image is Undefined is DontCare,
+    // because its contents are undefined; every other load op is used as requested.
+    [[nodiscard]] LoadOp passLoad(LoadOp requested, ResourceState imageState);
+
     // What one frame records into: its slot's command buffer and the acquired swap chain image.
     struct FrameTarget
     {
         VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-        SwapChainImage *image = nullptr;
+        SwapChainImageResources *image = nullptr;
         VkFormat format = VK_FORMAT_UNDEFINED;
         VkExtent2D extent{0, 0};
     };
@@ -35,10 +52,11 @@ namespace ngen::rhi::vulkan
         // Starts a frame; the command buffer is already recording.
         void begin(const FrameTarget &target);
 
-        // Ends a frame's commands: closes a render pass left open (an Error message), and moves an image no
-        // pass rendered to into the layout presentation needs.
+        // Ends a frame's commands: closes a render pass left open (an Error message), and moves the image from
+        // its tracked state to Present unless it is already there.
         void finish();
 
+        void barrier(const Barrier &barrier) override;
         void beginRendering(const ColorTarget &target) override;
         void endRendering() override;
         void setViewport(float x, float y, float width, float height, float minDepth, float maxDepth) override;
@@ -58,7 +76,27 @@ namespace ngen::rhi::vulkan
             return scissor_;
         }
 
+        // The vkCmdPipelineBarrier calls recorded in the frame being recorded, or in the last one after its
+        // endFrame (for tests).
+        [[nodiscard]] uint32_t pipelineBarrierCount() const
+        {
+            return pipelineBarrierCount_;
+        }
+
     private:
+        // A barrier target's image, and the state the command list tracks for it.
+        struct TrackedImage
+        {
+            VkImage image;
+            ResourceState *state;
+        };
+
+        [[nodiscard]] TrackedImage tracked(const BarrierTarget &target);
+
+        // Records one vkCmdPipelineBarrier with one image barrier moving the image from before to after, and
+        // leaves the tracked state in after.
+        void transition(const TrackedImage &image, ResourceState after);
+
         // Record the state and remember it.
         void applyViewport(const VkViewport &viewport);
         void applyScissor(const VkRect2D &scissor);
@@ -72,6 +110,8 @@ namespace ngen::rhi::vulkan
         bool rendering_ = false;
         VkViewport viewport_{};
         VkRect2D scissor_{};
+        ResourceState imageState_ = ResourceState::Undefined; // the swap chain image's tracked state
+        uint32_t pipelineBarrierCount_ = 0;
 
         // Bound state lasts the whole frame (Vulkan keeps it across render passes in a command buffer).
         bool pipelineBound_ = false;

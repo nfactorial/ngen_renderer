@@ -3,6 +3,7 @@
 
 #include <string>
 #include <utility>
+#include <variant>
 
 namespace ngen::rhi
 {
@@ -19,9 +20,11 @@ namespace ngen::rhi
             commands_.clear();
             rendering_ = false;
             recording_ = true;
+            swapChainImageState_ = ResourceState::Undefined;
         }
 
-        // Hands over the recorded commands; reports a rendering pass left open.
+        // Hands over the recorded commands; reports a rendering pass left open. The image's move to Present is
+        // not recorded.
         std::vector<RecordedCommand> finish()
         {
             if (rendering_)
@@ -31,6 +34,27 @@ namespace ngen::rhi
             }
             recording_ = false;
             return std::move(commands_);
+        }
+
+        void barrier(const Barrier &barrier) override
+        {
+            if (!requireRecording("barrier"))
+            {
+                return;
+            }
+            if (rendering_)
+            {
+                device_.report(Severity::Error, "barrier: called inside beginRendering and endRendering");
+                return;
+            }
+            ResourceState &state = trackedState(barrier.target);
+            if (auto valid = validate(barrier, state); !valid)
+            {
+                device_.report(Severity::Error, valid.error().message);
+                return;
+            }
+            state = barrier.after;
+            commands_.push_back(barrier);
         }
 
         void beginRendering(const ColorTarget &target) override
@@ -43,6 +67,13 @@ namespace ngen::rhi
             {
                 device_.report(Severity::Error, "beginRendering: already rendering");
                 return;
+            }
+            // The image's own move to ColorAttachment is recorded as the barrier it stands for.
+            if (swapChainImageState_ != ResourceState::ColorAttachment)
+            {
+                commands_.push_back(
+                    Barrier{SwapChainImage{}, swapChainImageState_, ResourceState::ColorAttachment});
+                swapChainImageState_ = ResourceState::ColorAttachment;
             }
             rendering_ = true;
             commands_.push_back(BeginRenderingCommand{target});
@@ -133,6 +164,12 @@ namespace ngen::rhi
         }
 
     private:
+        ResourceState &trackedState(const BarrierTarget &target)
+        {
+            return std::visit([this](const SwapChainImage &) -> ResourceState & { return swapChainImageState_; },
+                              target);
+        }
+
         bool requireRecording(const char *const command)
         {
             if (recording_)
@@ -157,6 +194,7 @@ namespace ngen::rhi
         std::vector<RecordedCommand> commands_;
         bool rendering_ = false;
         bool recording_ = false;
+        ResourceState swapChainImageState_ = ResourceState::Undefined;
     };
 
     namespace

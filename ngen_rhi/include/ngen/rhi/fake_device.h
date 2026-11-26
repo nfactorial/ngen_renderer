@@ -15,7 +15,9 @@
 
 namespace ngen::rhi
 {
-    // One struct per CommandList call, holding its arguments.
+    // One struct per CommandList call, holding its arguments. A barrier is recorded as the Barrier it was given;
+    // the transition beginRendering makes for itself is recorded as a Barrier just before its
+    // BeginRenderingCommand, and endFrame's transition to Present is not recorded.
     struct BeginRenderingCommand
     {
         ColorTarget target;
@@ -76,8 +78,9 @@ namespace ngen::rhi
         friend bool operator==(const DrawCommand &, const DrawCommand &) = default;
     };
 
-    using RecordedCommand = std::variant<BeginRenderingCommand, EndRenderingCommand, SetViewportCommand,
-                                         SetScissorCommand, BindPipelineCommand, BindVertexBufferCommand, DrawCommand>;
+    using RecordedCommand =
+        std::variant<Barrier, BeginRenderingCommand, EndRenderingCommand, SetViewportCommand, SetScissorCommand,
+                     BindPipelineCommand, BindVertexBufferCommand, DrawCommand>;
 
     class FakeCommandList;
 

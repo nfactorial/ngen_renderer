@@ -27,8 +27,7 @@ namespace ngen::rhi::vulkan
         }
     } // namespace
 
-    RenderPassCache::RenderPassCache(const VkDevice device, const VkImageLayout targetLayout)
-        : device_(device), targetLayout_(targetLayout)
+    RenderPassCache::RenderPassCache(const VkDevice device) : device_(device)
     {
     }
 
@@ -51,8 +50,8 @@ namespace ngen::rhi::vulkan
             }
         }
 
-        // Loading keeps what an earlier pass left in the image, which is then in the target layout; every other
-        // load op discards the contents, so the image may start in any layout.
+        // The image is already a colour attachment when the pass begins (beginRendering moves it there), and
+        // stays one: Load keeps its contents, and every other load op discards them.
         VkAttachmentDescription attachment{};
         attachment.format = format;
         attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -60,8 +59,8 @@ namespace ngen::rhi::vulkan
         attachment.storeOp = toVulkan(store);
         attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        attachment.initialLayout = load == LoadOp::Load ? targetLayout_ : VK_IMAGE_LAYOUT_UNDEFINED;
-        attachment.finalLayout = targetLayout_;
+        attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentReference reference{};
         reference.attachment = 0;
@@ -72,8 +71,8 @@ namespace ngen::rhi::vulkan
         subpass.colorAttachmentCount = 1;
         subpass.pColorAttachments = &reference;
 
-        // Orders the attachment's load and layout transition after the acquire semaphore's wait (at the colour
-        // output stage) and after any earlier pass's writes to the same image in this frame.
+        // Orders the attachment's load after any earlier pass's writes to the same image in this frame, so a pass
+        // that follows another with no barrier between them is still ordered after it.
         VkSubpassDependency dependency{};
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;

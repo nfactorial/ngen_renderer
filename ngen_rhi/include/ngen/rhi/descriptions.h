@@ -10,6 +10,7 @@
 #include <expected>
 #include <span>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace ngen::rhi
@@ -140,9 +141,45 @@ namespace ngen::rhi
         friend bool operator==(const ColorTarget &, const ColorTarget &) = default;
     };
 
+    // How a resource is used. Undefined means its contents may be discarded.
+    enum class ResourceState
+    {
+        Undefined,
+        ColorAttachment,
+        ShaderRead,
+        Present,
+    };
+
+    // Names this frame's swap chain image.
+    struct SwapChainImage
+    {
+        friend bool operator==(const SwapChainImage &, const SwapChainImage &) = default;
+    };
+
+    // What a barrier applies to (textures join it later). Backends std::visit it, so a target added later is a
+    // compile error wherever it is unhandled.
+    using BarrierTarget = std::variant<SwapChainImage>;
+
+    // Makes every earlier use of the target in `before` finish before any later use in `after`, and leaves the
+    // target in `after`.
+    struct Barrier
+    {
+        BarrierTarget target;
+        ResourceState before;
+        ResourceState after;
+
+        friend bool operator==(const Barrier &, const Barrier &) = default;
+    };
+
     // Check the *Descriptions* requirements; each failure is InvalidArgument naming the field. Shared by
     // every Device implementation. Whether a pipeline's shader handles are live is the device's to check.
     [[nodiscard]] std::expected<void, ngen::Error> validate(const BufferDescription &description);
     [[nodiscard]] std::expected<void, ngen::Error> validate(const ShaderDescription &description);
     [[nodiscard]] std::expected<void, ngen::Error> validate(const GraphicsPipelineDescription &description);
+
+    // Checks a barrier against its target's tracked state, for every command list to share: `before` must be
+    // the tracked state, `after` must not be Undefined, and the swap chain image is never ShaderRead. Each
+    // failure is InvalidArgument; a wrong `before` names both states. Where barrier may be called (outside a
+    // pass) is the command list's to check.
+    [[nodiscard]] std::expected<void, ngen::Error> validate(const Barrier &barrier, ResourceState trackedState);
 } // namespace ngen::rhi

@@ -5,9 +5,38 @@
 
 #include <algorithm>
 #include <string>
+#include <variant>
 
 namespace ngen::rhi::vulkan
 {
+    ImageStateUse imageStateUse(const ResourceState state, const bool presents)
+    {
+        switch (state)
+        {
+        case ResourceState::Undefined:
+            // A barrier from Undefined waits at the colour output stage, where the acquire semaphore's wait is.
+            return ImageStateUse{VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0};
+        case ResourceState::ColorAttachment:
+            return ImageStateUse{VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
+        case ResourceState::ShaderRead:
+            return ImageStateUse{VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                 VK_ACCESS_SHADER_READ_BIT};
+        case ResourceState::Present:
+            break;
+        }
+        return ImageStateUse{presents ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                             VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0};
+    }
+
+    LoadOp passLoad(const LoadOp requested, const ResourceState imageState)
+    {
+        // While the image is Undefined its contents are undefined, so loading them is the same as not caring
+        // about them.
+        return requested == LoadOp::Load && imageState == ResourceState::Undefined ? LoadOp::DontCare : requested;
+    }
+
     VulkanCommandList::VulkanCommandList(DeviceImpl &device) : device_(device)
     {
     }
@@ -20,6 +49,38 @@ namespace ngen::rhi::vulkan
         pipelineBound_ = false;
         pipelineBindings_.clear();
         boundBindings_.clear();
+        // The image keeps no record of being rendered across frames: whatever it holds may be discarded.
+        imageState_ = ResourceState::Undefined;
+        pipelineBarrierCount_ = 0;
+    }
+
+    VulkanCommandList::TrackedImage VulkanCommandList::tracked(const BarrierTarget &target)
+    {
+        return std::visit(
+            [this](const SwapChainImage &) { return TrackedImage{target_.image->image, &imageState_}; }, target);
+    }
+
+    void VulkanCommandList::transition(const TrackedImage &image, const ResourceState after)
+    {
+        const bool presents = device_.context().windowExpected();
+        const ImageStateUse from = imageStateUse(*image.state, presents);
+        const ImageStateUse to = imageStateUse(after, presents);
+
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.srcAccessMask = from.access;
+        barrier.dstAccessMask = to.access;
+        barrier.oldLayout = from.layout;
+        barrier.newLayout = to.layout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image.image;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.layerCount = 1;
+        vkCmdPipelineBarrier(target_.commandBuffer, from.stage, to.stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        ++pipelineBarrierCount_;
+        *image.state = after;
     }
 
     void VulkanCommandList::applyViewport(const VkViewport &viewport)
@@ -43,23 +104,10 @@ namespace ngen::rhi::vulkan
             rendering_ = false;
         }
 
-        // An image no pass rendered is still in an undefined layout; presenting needs PRESENT_SRC_KHR.
-        if (!target_.image->rendered)
+        // Presenting needs the image in Present; in a frame that drew nothing it moves there from Undefined.
+        if (imageState_ != ResourceState::Present)
         {
-            VkImageMemoryBarrier barrier{};
-            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = target_.image->image;
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.layerCount = 1;
-            // Chained to the acquire semaphore's wait, which is at the colour output stage.
-            vkCmdPipelineBarrier(target_.commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-            target_.image->rendered = true;
+            transition(tracked(SwapChainImage{}), ResourceState::Present);
         }
         recording_ = false;
     }
@@ -84,6 +132,27 @@ namespace ngen::rhi::vulkan
         return false;
     }
 
+    void VulkanCommandList::barrier(const Barrier &barrier)
+    {
+        if (!requireRecording("barrier"))
+        {
+            return;
+        }
+        // A pipeline barrier inside a render pass would need the pass to declare a self-dependency.
+        if (rendering_)
+        {
+            device_.report(Severity::Error, "barrier: called inside beginRendering and endRendering");
+            return;
+        }
+        const TrackedImage image = tracked(barrier.target);
+        if (auto valid = validate(barrier, *image.state); !valid)
+        {
+            device_.report(Severity::Error, valid.error().message);
+            return;
+        }
+        transition(image, barrier.after);
+    }
+
     void VulkanCommandList::beginRendering(const ColorTarget &target)
     {
         if (!requireRecording("beginRendering"))
@@ -96,15 +165,18 @@ namespace ngen::rhi::vulkan
             return;
         }
 
-        // Until a pass has rendered the image its contents are undefined (and its layout too), so loading them
-        // is the same as not caring about them.
-        const LoadOp load =
-            target.load == LoadOp::Load && !target_.image->rendered ? LoadOp::DontCare : target.load;
-        const auto renderPass = device_.renderPasses().get(target_.format, load, target.store);
+        const auto renderPass = device_.renderPasses().get(target_.format, passLoad(target.load, imageState_),
+                                                           target.store);
         if (!renderPass)
         {
             device_.report(Severity::Error, "beginRendering: " + renderPass.error().message);
             return;
+        }
+
+        // Render passes start with their image a colour attachment and never change its layout.
+        if (imageState_ != ResourceState::ColorAttachment)
+        {
+            transition(tracked(SwapChainImage{}), ResourceState::ColorAttachment);
         }
 
         VkClearValue clear{};
@@ -126,7 +198,6 @@ namespace ngen::rhi::vulkan
         applyScissor(VkRect2D{{0, 0}, target_.extent});
 
         rendering_ = true;
-        target_.image->rendered = true;
     }
 
     void VulkanCommandList::endRendering()
