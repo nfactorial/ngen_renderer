@@ -1,7 +1,7 @@
 # Graphics
 
 > - **Template:** v1
-> - **Area:** ngen's graphics layer: the RHI, its backends and (later) the renderer
+> - **Area:** ngen's graphics layer: the RHI, its backends and the renderer
 > - **Design:** [renderer](../../design/renderer.md) · **Technical:** [renderer](../../technical/renderer.md)
 
 The graphics layer, above the platform layer. Its milestones and later work are listed in the
@@ -11,6 +11,7 @@ The graphics layer, above the platform layer. Its milestones and later work are 
 
 - [RHI](rhi.md): the backend-neutral device, handles, resource descriptions, command lists and the fake backend for tests.
 - [RHI Vulkan backend](rhi_vulkan.md): the Vulkan implementation of the RHI.
+- [Renderer](renderer/README.md): the renderer games draw through, with its stages, render list and render graph.
 
 ## Not yet planned
 

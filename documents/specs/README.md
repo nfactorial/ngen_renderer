@@ -12,6 +12,7 @@ backend) and renderer.
 - [Platform](platform/platform.md): the window interface (native handles, pixel size, resize and suspend events), its SDL3 implementation, and `ngen::Error`.
 - [RHI](graphics/rhi.md): the backend-neutral device, handles, resource descriptions, command lists and the fake backend for tests.
 - [RHI Vulkan backend](graphics/rhi_vulkan.md): the Vulkan implementation of the RHI.
+- [Renderer](graphics/renderer/README.md): the renderer games draw through, with its stages, render list and render graph.
 - [Example application](examples/example.md): the triangle drawn through ngen, the visual check.
 
 ## Not yet planned
@@ -20,8 +21,6 @@ backend) and renderer.
 
 Check: run the example: the triangle draws through the renderer; the unit tests show passes ordered by stage and barriers inferred from declared reads and writes.
 
-- `ngen_renderer` (new spec): renderer configuration with stages, the render graph inferring barriers from declared reads and writes, and the per-frame render list.
-- Example on the renderer (change to `example`): the example submits its triangle as a draw item.
 
 ### Milestone: Android triangle
 

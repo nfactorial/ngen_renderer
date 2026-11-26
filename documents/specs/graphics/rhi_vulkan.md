@@ -160,3 +160,7 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
   (`swapChainSize()`); after `onSuspended`, `beginFrame` returns `nullptr`; after `onResumed`
   with the window's handles, it presents 3 more frames. No `Warning` or `Error` message reaches
   the sink.
+
+## Pending changes
+
+### Barriers  (in [RHI](rhi.md))
