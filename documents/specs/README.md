@@ -59,5 +59,7 @@ Check: run the example: a rotating, lit 3D mesh draws with depth beside the spri
 - Parallel recording (change to `rhi` and `ngen_renderer`): record command lists on several threads.
 - `ngen_scene` (new spec): scene management built on the renderer.
 - `ngen_assets` (new spec): asset management.
-- SDL platform target (change to `platform`): move `SdlWindow` into its own target that links SDL3 publicly, so code including `sdl_window.h` need not link SDL3 itself.
+- SDL platform target (change to `platform`): move `SdlWindow` into its own target that links SDL3 publicly, so `ngen::platform` and the modules on it (`ngen_rhi_vulkan`) carry no SDL3 dependency, and code including `sdl_window.h` need not link SDL3 itself.
+- Shared misuse checks (change to `rhi` and `rhi-vulkan`): one call-order and handle checker in `ngen_rhi` used by both `FakeCommandList` and the Vulkan command list, adopting the Vulkan backend's extra misuse rules (negative scissor offset, vertex binding past the device limit, draw with no pipeline, draw with a binding the pipeline reads unbound) in the RHI contract and `FakeDevice`.
+- `HandlePool` clear or iteration (change to `rhi`): let a pool be cleared or iterated, so a backend can free its live resources without resetting the pool.
 - Drop SDL2 settings (change to `platform`): remove the SDL2 dependency block, which shares SDL's static/shared options with SDL3, once nothing uses SDL2.

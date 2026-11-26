@@ -189,8 +189,8 @@ The abstract recorder for one frame's commands.
 - `endFrame` with rendering still open sends an `Error` message and still submits.
 - A null or stale handle passed to a command skips that command and sends an `Error` message
   naming it.
-- In a GPU backend, the frame's viewport and scissor default to the full swap chain image at
-  `beginRendering`.
+- In a GPU backend, each `beginRendering` sets the viewport and scissor to the full target
+  image; a `setViewport` or `setScissor` lasts until the end of its pass.
 
 ### FakeDevice  (ngen_rhi/include/ngen/rhi/fake_device.h)
 

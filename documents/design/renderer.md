@@ -32,6 +32,17 @@ The renderer draws what a game tells it to. It holds no game state.
 
 Each module is an `ngen_` library with a matching `ngen::` CMake target.
 
+**The modules are reusable on their own.** They form a cohesive set someone can pick from to
+build their own engine: the RHI and the renderer pieces, say, can be integrated into another
+engine with nothing else. A default ngen 3D pipeline may configure the modules together, but
+someone can assemble their own.
+
+- The lower a module's layer, the fewer dependencies it has. Higher layers depend on lower ones
+  by necessity (a scene module is tightly coupled to the rendering API).
+- A module takes no dependency a user might not want, such as SDL, unless it is the module's
+  purpose; an optional implementation lives in a target of its own.
+- Where two modules genuinely can't be disentangled, coupling them is fine.
+
 | Module | Target | Holds |
 |---|---|---|
 | `ngen_platform` | `ngen::platform` | The surface and lifecycle interface, with an SDL implementation. |

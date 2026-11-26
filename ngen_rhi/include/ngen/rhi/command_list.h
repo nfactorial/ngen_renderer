@@ -15,8 +15,9 @@ namespace ngen::rhi
     public:
         virtual ~CommandList() = default;
 
-        // Starts rendering to this frame's swap chain image, with the full image as render area. The frame's
-        // viewport and scissor default to the full image.
+        // Starts rendering to this frame's swap chain image, with the full image as render area. In a GPU
+        // backend each pass starts with the full image as viewport and scissor; a setViewport or setScissor
+        // lasts until the end of its pass.
         virtual void beginRendering(const ColorTarget &target) = 0;
         virtual void endRendering() = 0;
 

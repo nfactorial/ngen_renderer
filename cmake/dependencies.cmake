@@ -58,6 +58,15 @@ else()
     message(FATAL_ERROR "SDL3 was found but provides neither SDL3::SDL3 nor SDL3::SDL3-static.")
 endif()
 
+# VulkanMemoryAllocator (header-only), for the Vulkan backend's memory. Its CMake project provides
+# GPUOpen::VulkanMemoryAllocator.
+FetchContent_Declare(VulkanMemoryAllocator
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG        v3.3.0
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(VulkanMemoryAllocator)
+
 # GoogleTest and GoogleMock, for the unit tests.
 if (NGEN_BUILD_TESTS)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)

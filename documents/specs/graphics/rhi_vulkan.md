@@ -1,7 +1,7 @@
 # RHI Vulkan backend — Spec
 
 > - **Template:** v1 · **ID:** rhi-vulkan
-> - **Status:** ready
+> - **Status:** built
 > - **Blocked by:** [RHI](rhi.md), [Platform](../platform/platform.md)
 > - **Background (not needed to build):** Feature: [ngen](../README.md) · Design: [renderer](../../design/renderer.md) · Technical: [renderer](../../technical/renderer.md) · Inputs: none
 
@@ -69,10 +69,23 @@ also be created with no window, for tests.
   made from it. `createPipeline` creates the variant for the swap chain's current format, or for
   `B8G8R8A8_UNORM` when there is no swap chain; after a recreation changes the format, binding a
   pipeline creates the new format's variant if it has none, and its handle stays valid.
-- Viewport and scissor are dynamic pipeline state.
+- Viewport and scissor are dynamic pipeline state. Every `beginRendering` sets both to the full
+  target image, so a `setViewport` or `setScissor` lasts until the end of its pass; one made
+  outside a pass is recorded and overridden by the next `beginRendering`.
+- A `Load` pass on a swap chain image no pass has rendered since the swap chain was created
+  uses the `DontCare` pass, because that image's contents and layout are undefined. A frame that
+  records no pass still transitions its image for presentation.
+- On a `WindowSupport::None` device, render passes end in `COLOR_ATTACHMENT_OPTIMAL`.
+- `VulkanDevice` and its command list are `final` and derive directly from `ngen::rhi::Device`
+  and `ngen::rhi::CommandList`.
 - The swap chain prefers `B8G8R8A8_UNORM` with sRGB non-linear colour space, else the first
   offered format; it prefers `FIFO` presentation (always available, so frame pacing follows the
-  display). It applies the surface's current transform.
+  display). It applies the surface's current transform. Composite alpha is opaque when the
+  surface supports it, else the first mode it offers.
+- Vulkan results map to `ngen::ErrorCode`: incompatible driver, a missing layer, extension or
+  feature, and an unsupported format are `Unsupported`; out-of-memory results are
+  `OutOfMemory`; device and surface loss are `DeviceLost` and `SurfaceLost`; any other failure is
+  `Internal`.
 - ngen prints nothing itself; everything is reported through the message sink or returned.
 
 ## Modules and interfaces
@@ -93,18 +106,37 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
 - `create` with validation requested when `VK_LAYER_KHRONOS_validation` is not installed returns
   `Unsupported`, saying the layer is missing.
 - `create` with no suitable physical device returns `Unsupported`, saying why devices were
-  rejected.
+  rejected. `create` with `WindowSupport::Expected` on a platform with no surface extension
+  returns `Unsupported`.
+- `createShader` with bytecode that is not SPIR-V (a size not a multiple of 4, or no SPIR-V
+  magic number) returns `InvalidArgument`. Destroying a shader frees it at once.
+- A pipeline with `PolygonMode::Line` enables `fillModeNonSolid` where the device has it, and
+  returns `Unsupported` where it does not.
+- Beyond the RHI's misuse rules, the command list skips with an `Error` message: `setScissor`
+  with a negative x or y, `bindVertexBuffer` at or past `maxVertexInputBindings`, `draw` with
+  no pipeline bound, and `draw` while a binding the pipeline reads is unbound.
 - `attachWindow` with a `NativeWindow` of a kind the build's platform does not use, or whose
   surface the device's queue family cannot present to, returns `Unsupported`.
 - **Swap chain recreation:** the swap chain is recreated, after the GPU finishes its frames in
   flight, when `onResized` reports a size different from the swap chain's, when acquiring or
   presenting returns `VK_ERROR_OUT_OF_DATE_KHR`, and when presenting returns `VK_SUBOPTIMAL_KHR`.
   An acquire returning `VK_SUBOPTIMAL_KHR` still renders that frame. Recreation passes the old
-  swap chain as `oldSwapchain` and rebuilds the framebuffers.
+  swap chain as `oldSwapchain` and rebuilds the framebuffers. Recreation for a new size happens
+  at the next `beginFrame`. An out-of-date acquire recreates and acquires once more; if that
+  fails too, `beginFrame` returns `nullptr` and recreation stays pending. While the window size
+  is non-zero but no swap chain exists, each `beginFrame` tries to create one.
+- **Abandoned frames:** when a call fails after an image is acquired (the wait on the image's
+  earlier fence, command pool reset, command buffer begin or end, fence reset, or submit), and
+  the failure is not device loss, the swap chain is marked for recreation and an empty submit
+  waits on the acquire's semaphore and signals the slot's fence. If that recovery fails, the
+  device is treated as lost.
 - While the window size is 0 in either dimension, no swap chain exists and `beginFrame` returns
   `nullptr`; the first non-zero size recreates it.
 - `onSuspended` waits for the GPU, then destroys the swap chain and the surface; `onResumed`
-  creates a new surface from the handles given and a new swap chain.
+  creates a new surface from the handles given (replacing any that remains) and a new swap
+  chain. `onSuspended` while a frame is being recorded takes effect once `endFrame` has
+  submitted; `onResumed` while recording sends an `Error` message and returns
+  `InvalidArgument`.
 - **Device loss:** `VK_ERROR_DEVICE_LOST` from any Vulkan call on the frame path (fence wait,
   acquire, submit, present) is returned as `DeviceLost`, and every later `beginFrame` returns
   `DeviceLost`.
@@ -128,50 +160,3 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
   (`swapChainSize()`); after `onSuspended`, `beginFrame` returns `nullptr`; after `onResumed`
   with the window's handles, it presents 3 more frames. No `Warning` or `Error` message reaches
   the sink.
-
-## Build
-
-**Milestone:** [Triangle on the RHI](../README.md)
-
-**Read first:** `ngen_rhi/include/ngen/rhi/`; `ngen_platform/include/ngen/platform/window.h`;
-`ngen_vulkan/source/` (the Vulkan code being
-ported: instance and device setup, the debug messenger, swap chain, frame synchronisation in
-`renderer.cpp`, pipeline description, render pass).
-
-**Touchpoints:**
-
-| Path / symbol | Create / modify | Kind |
-|---|---|---|
-| `CMakeLists.txt` | modify (add `ngen_rhi_vulkan`) | config |
-| `cmake/dependencies.cmake` | modify (VMA) | config |
-| `ngen_rhi_vulkan/` (CMakeLists, header, sources, `tests/` with its Slang test shader) | create | code |
-
-**Fixed:**
-- `VulkanDevice::create`, `WindowSupport` and the header path.
-- `VulkanDevice` and its command list derive directly from `ngen::rhi::Device` and
-  `ngen::rhi::CommandList`, and nothing derives from them.
-- The main file opens with `// Spec: rhi-vulkan. Behaviour changes go through it.`
-- The test target is `ngen_rhi_vulkan_tests`. The smoke test and the window test are registered
-  with the CTest label `gpu`, and find their compiled shader through a path the build passes in.
-  Only the test target links `ngen_platform`'s SDL implementation; the library does not.
-
-**Free:** the internal class and file split, how resources are stored (it may reuse
-`HandlePool`), and further tests.
-
-**Guardrails:**
-- The swap chain's format, extent, image count and present mode are read from the surface at
-  each (re)creation, never kept from the first one.
-- Each frame waits on its own slot's fence before reusing that slot's command buffer, and on the
-  fence of any earlier frame still using the acquired image.
-- A fence is reset only immediately before the submit that will signal it.
-- `ngen_vulkan` is left unchanged.
-
-**Done when:**
-- *Agent-checkable:* every requirement and acceptance criterion above is covered by a test
-  where one can run on this machine (device and surface loss, and out-of-date results, cannot be
-  forced; their handling is checked in review) · `ctest` passes, including both `gpu` tests on
-  this machine · `ngen_rhi_vulkan`'s
-  public header includes no Vulkan header (grep).
-- *Human check:* none of its own; presenting, resizing and minimising are the milestone check.
-
-**Delegation:** deep implementer, full review. Vulkan synchronisation and swap chain lifetime, where subtle mistakes pass the build.
