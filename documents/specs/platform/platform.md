@@ -43,10 +43,8 @@ holds `ngen::Error`, the error type every ngen module returns.
 - The whole project builds as C++23 (`CMAKE_CXX_STANDARD 23`, required, no extensions).
 - The Windows configure preset uses the "Visual Studio 17 2022" generator, x64; the macOS preset
   uses Ninja, Debug. Both platforms are supported.
-- SDL3 is found as an installed CMake package, or else fetched and built statically, as SDL2 is
-  today. The fetch is pinned to `release-3.2.30`, with SDL's test library off. SDL2 stays available to the
-  code that still uses it until that code is removed, and the two share SDL's static/shared
-  build options.
+- SDL3 is found as an installed CMake package, or else fetched and built statically. The fetch
+  is pinned to `release-3.2.30`, with SDL's test library off.
 - Tests use GoogleTest and GoogleMock, fetched with `FetchContent` (tag `v1.17.0`), registered
   with `gtest_discover_tests`, and run by `ctest`. A test target is built only when the CMake
   option `NGEN_BUILD_TESTS` is on (default ON), beside `NGEN_BUILD_EXAMPLE`. The test target is
