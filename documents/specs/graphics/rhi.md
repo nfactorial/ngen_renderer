@@ -291,8 +291,9 @@ barriers, and the Vulkan backend's render passes stop changing the image's layou
 - **Replace** (RHI Vulkan backend › Constraints): "A `Load` pass on a swap chain image no pass
   has rendered since the swap chain was created uses the `DontCare` pass, because that image's
   contents and layout are undefined. A frame that records no pass still transitions its image
-  for presentation." → "A `Load` pass on a swap chain image no pass has rendered since the swap
-  chain was created uses the `DontCare` pass, because that image's contents are undefined."
+  for presentation." → "A `Load` pass while the swap chain image's tracked state is `Undefined`
+  uses the `DontCare` pass, because its contents are undefined; the image keeps no record of
+  being rendered across frames."
 - **Replace** (RHI Vulkan backend › Constraints): "On a `WindowSupport::None` device, render
   passes end in `COLOR_ATTACHMENT_OPTIMAL`." → "Every render pass starts and ends with its image
   in `COLOR_ATTACHMENT_OPTIMAL`. A pass whose load is `Load` keeps the image's contents, and any
@@ -311,10 +312,14 @@ barriers, and the Vulkan backend's render passes stop changing the image's layou
   `barrier({SwapChainImage, ColorAttachment, ColorAttachment})` and a `Load` pass that draws the
   test pipeline presents with no `Warning` or `Error` message; so does a frame that records
   `beginRendering` with no barrier first, and so does one that records no pass."
+- **Add** (RHI Vulkan backend › Acceptance, window test): "In a later frame than the first, a
+  `Load` pass recorded while the image is `Undefined` (no barrier, or the first pass of the
+  frame) presents with no `Warning` or `Error` message, as the `DontCare` pass does."
 
 **Read first:** `ngen_rhi/include/ngen/rhi/command_list.h`, `ngen_rhi/source/fake_device.cpp`,
 `ngen_rhi_vulkan/source/command_list.cpp`, `ngen_rhi_vulkan/source/render_pass_cache.cpp`,
-`ngen_rhi_vulkan/source/swap_chain.cpp`, and the Vulkan backend's tests.
+`ngen_rhi_vulkan/source/swap_chain.cpp`, `ngen_rhi_vulkan/source/swap_chain.h`,
+`ngen_rhi_vulkan/source/device_impl.cpp`, and the Vulkan backend's tests.
 
 **Touchpoints:**
 
@@ -326,6 +331,8 @@ barriers, and the Vulkan backend's render passes stop changing the image's layou
 | ngen_rhi/tests/fake_device_tests.cpp | modify | code |
 | ngen_rhi_vulkan/source/command_list.cpp, command_list.h | modify | code |
 | ngen_rhi_vulkan/source/render_pass_cache.cpp, render_pass_cache.h | modify | code |
+| ngen_rhi_vulkan/source/device_impl.cpp (constructs `RenderPassCache`) | modify | code |
+| ngen_rhi_vulkan/source/swap_chain.h `SwapChainImage::rendered` (removed) | modify | code |
 | the Vulkan backend's window test | modify | code |
 
 **Fixed:** the names and shapes in *Changes*. `BarrierTarget` is a `std::variant` that the
