@@ -5,10 +5,10 @@ nGen uses the Vulkan graphics API for cross-platform rendering, behind a small g
 interface (the RHI).
 
 # Modules
-- `ngen_platform`: the `Window` interface, its SDL3 implementation `SdlWindow` and a `FakeWindow` for tests.
-- `ngen_rhi`: the RHI (`Device`, `CommandList`, handles and descriptions) and a `FakeDevice` for tests.
-- `ngen_rhi_vulkan`: the Vulkan implementation of the RHI, `VulkanDevice`.
-- `example`: an application that draws a vertex-coloured triangle through the above.
+- [`ngen_platform`](ngen_platform/readme.md): the `Window` interface, its SDL3 implementation `SdlWindow` and a `FakeWindow` for tests.
+- [`ngen_rhi`](ngen_rhi/readme.md): the RHI (`Device`, `CommandList`, handles and descriptions) and a `FakeDevice` for tests.
+- [`ngen_rhi_vulkan`](ngen_rhi_vulkan/readme.md): the Vulkan implementation of the RHI, `VulkanDevice`.
+- [`example`](example/readme.md): an application that draws a vertex-coloured triangle through the above.
 
 See [documents/design/renderer.md](documents/design/renderer.md) for the planned structure.
 
