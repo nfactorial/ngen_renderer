@@ -92,7 +92,9 @@ someone can assemble their own.
 - **Stage:** an ordered group of render graph passes within a frame, optionally with its own
   camera or render target. The renderer provides a default set (Shadow, Opaque, Transparent,
   Post-process, UI), and a game can add, remove or reorder stages in the renderer
-  configuration. Stages never change while the renderer is running. Every draw item names one.
+  configuration. Stages never change while the renderer is running; a stage with no draw items
+  in a frame records no passes and costs nothing, so a game's one layout also serves screens that
+  use only some of its stages (a front-end menu drawing only UI). Every draw item names one.
 - **Render graph:** the frame's passes, each declaring the attachments and resources it reads
   and writes, with how each attachment is loaded and stored. The renderer orders the passes and
   inserts every synchronisation barrier; nothing above the render graph writes barriers.
