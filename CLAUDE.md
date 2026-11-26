@@ -1,8 +1,9 @@
 # ngen_renderer
 
-Supports both Windows and macOS: every change must build and pass its tests on both. macOS
-doesn't run yet (there is no Metal layer), so for now only the Windows checks can run; the macOS
-checks are run when the work moves to a Mac.
+Supports both Windows and macOS: every change must build and pass its tests on both. macOS runs
+Vulkan through MoltenVK; the Apple platform code (the `CAMetalLayer` from SDL's Metal view) is
+written but not yet verified on a Mac. Run the checks for whichever machine you are on; changes
+made on one machine are checked on the other when the work moves there.
 
 Work follows the nfx workflow (https://github.com/nfactorial/nfx-workflow): specs live in
 `documents/specs/`, and code changes keep them true.
