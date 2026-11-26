@@ -1,180 +1,116 @@
-
-#include <fstream>
+// Spec: example. Behaviour changes go through it.
 #include "render.h"
-#include "pipeline_description.h"
 
-namespace {
-    struct FileData {
-        size_t length;
-        std::unique_ptr<char[]> ptr;
+#include <ngen/rhi/descriptions.h>
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <fstream>
+#include <span>
+#include <string>
+#include <utility>
+
+namespace
+{
+    // Interleaved in binding 0: position at offset 0 (location 0), colour at offset 8 (location 1).
+    struct Vertex
+    {
+        float position[2];
+        float color[3];
     };
 
-    FileData loadFile(const char *fileName) {
-        FileData result = {0, nullptr};
+    static_assert(sizeof(Vertex) == 20);
 
-        std::ifstream file(fileName, std::ios::ate | std::ios::binary);
-        if (!file.is_open()) {
-            printf("Could not find shader source \"%s\".\n", fileName);
-            return result;
-        }
-
-        result.length = static_cast<size_t>(file.tellg());
-        result.ptr = std::make_unique<char[]>(result.length);
-
-        file.seekg(0);
-        file.read(result.ptr.get(), result.length);
-        file.close();
-
-        return result;
-    }
-
-    struct Vec2 {
-        float x;
-        float y;
-    };
-
-    struct Vec3 {
-        float x;
-        float y;
-        float z;
-    };
-
-    struct Vertex {
-        Vec2 position;
-        Vec3 color;
-    };
-
-    static const Vertex s_Vertices[] = {
+    constexpr std::array<Vertex, 3> kVertices = {{
         {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, 0.5f,}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f,}, {0.0f, 0.0f, 1.0f}}
-    };
-}
+        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    }};
+} // namespace
 
-namespace example {
-    Render::Render() {
+namespace example
+{
+    std::expected<std::vector<std::byte>, ngen::Error> loadShader(const char *const path)
+    {
+        std::ifstream file(path, std::ios::ate | std::ios::binary);
+        if (!file.is_open())
+        {
+            return std::unexpected(ngen::makeError(ngen::ErrorCode::NotFound,
+                                                   std::string("could not open the shader \"") + path + "\""));
+        }
 
+        std::vector<std::byte> bytes(static_cast<size_t>(file.tellg()));
+        file.seekg(0);
+        file.read(reinterpret_cast<char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (!file)
+        {
+            return std::unexpected(ngen::makeError(ngen::ErrorCode::Internal,
+                                                   std::string("could not read the shader \"") + path + "\""));
+        }
+        return bytes;
     }
 
-    Render::~Render() {
-        dispose();
+    Triangle::Triangle(ngen::rhi::Device &device) : device_(device)
+    {
     }
 
-    void Render::dispose() {
-        m_renderer.getDevice().waitIdle();
-
-        for (auto f : m_frameBuffers) {
-            vkDestroyFramebuffer(m_renderer.getDevice(), f, nullptr);
-        }
-        m_frameBuffers.clear();
-
-        m_vertexBuffer.dispose();
-
-        m_pipeline.dispose();
-        m_renderPass.dispose();
-        m_commandPool.dispose();
-        m_shader.dispose();
-        m_renderer.dispose();
+    Triangle::~Triangle()
+    {
+        // Destroying a null handle is ignored, so this also cleans up after a failed create.
+        device_.destroy(pipeline_);
+        device_.destroy(shader_);
+        device_.destroy(vertexBuffer_);
     }
 
-    bool Render::initialize(SDL_Window *window, const char *applicationName) {
-        if (!m_renderer.initialize(window, applicationName, true)) {
-            return false;
+    std::expected<void, ngen::Error> Triangle::create(const std::vector<std::byte> &shaderBytes)
+    {
+        using namespace ngen::rhi;
+
+        auto buffer = device_.createBuffer({sizeof(kVertices), BufferUsage::Vertex});
+        if (!buffer)
+        {
+            return std::unexpected(std::move(buffer.error()));
+        }
+        vertexBuffer_ = *buffer;
+
+        if (auto written = device_.writeBuffer(vertexBuffer_, 0, std::as_bytes(std::span(kVertices))); !written)
+        {
+            return std::unexpected(std::move(written.error()));
         }
 
-        auto shaderSource = loadFile("./shaders/triangle.spv");
-
-        // TODO: Still early days for the API, this is a little messy right now
-        if (!shaderSource.ptr || !m_shader.create(m_renderer.getDevice(), shaderSource.ptr.get(), shaderSource.length)) {
-            printf("Failed to create shaders\n");
-
-            dispose();
-            return false;
+        auto shader = device_.createShader({shaderBytes});
+        if (!shader)
+        {
+            return std::unexpected(std::move(shader.error()));
         }
+        shader_ = *shader;
 
-        if (!m_renderPass.create(m_renderer.getContext())) {
-            printf("Failed to create render pass\n");
+        GraphicsPipelineDescription description;
+        description.vertex = {shader_, "vertexMain"};
+        description.fragment = {shader_, "fragmentMain"};
+        description.bindings = {{0, sizeof(Vertex)}};
+        description.attributes = {
+            {0, 0, Format::R32G32Float, offsetof(Vertex, position)},
+            {1, 0, Format::R32G32B32Float, offsetof(Vertex, color)},
+        };
+        description.cull = CullMode::None;
 
-            dispose();
-            return false;
+        auto pipeline = device_.createPipeline(description);
+        if (!pipeline)
+        {
+            return std::unexpected(std::move(pipeline.error()));
         }
-
-        if (!m_vertexBuffer.createVertexBuffer(m_renderer.getContext(), sizeof(s_Vertices))) {
-            printf("Failed to allocate vertex buffer\n");
-            dispose();
-            return false;
-        }
-
-        memcpy(m_vertexBuffer.mapMemory(), s_Vertices, sizeof(s_Vertices));
-        m_vertexBuffer.unmapMemory();
-
-        ngen::vulkan::PipelineDescription description;
-
-        const auto &extent = m_renderer.getContext().getSwapChain().getExtent();
-
-        description.addVertexBinding(sizeof(Vertex))
-                   .addAttribute(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, position))
-                   .addAttribute(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color))
-                   .addVertexShader(m_shader, "vertexMain")
-                   .addFragmentShader(m_shader, "fragmentMain")
-                   .setViewport(0.0f, 0.0f, float(extent.width), float(extent.height), 0.0f, 1.0f)
-                   .setScissor(0, 0, extent);
-
-        if (!m_pipeline.create(m_renderer.getContext(), m_renderPass, description)) {
-            printf("Failed to create pipeline\n");
-
-            dispose();
-            return false;
-        }
-
-        // TODO: Can these next two calls be combined into one?
-        if (!m_commandPool.create(m_renderer.getContext(), VK_QUEUE_GRAPHICS_BIT)) {
-            printf("Failed to create command pool\n");
-
-            dispose();
-            return false;
-        }
-
-        if (!m_commandPool.allocateCommandBuffers(m_renderer.getContext().getSwapChain().getImageCount())) {
-            printf("Failed to allocate command buffers\n");
-
-            dispose();
-            return false;
-        }
-
-        if (!m_renderer.getContext().getSwapChain().createFrameBuffers(m_renderPass, m_frameBuffers)) {
-            printf("Failed to create frame buffers\n");
-
-            dispose();
-            return false;
-        }
-
-        for (size_t i = 0; i < m_commandPool.size(); ++i) {
-            recordCommandBuffer(i);
-        }
-
-        return true;
+        pipeline_ = *pipeline;
+        return {};
     }
 
-    void Render::render() {
-        if (m_renderer.beginFrame(m_commandPool)) {
-            m_renderer.endFrame();
-        }
+    void Triangle::draw(ngen::rhi::CommandList &commands) const
+    {
+        commands.beginRendering({}); // clears to black
+        commands.bindPipeline(pipeline_);
+        commands.bindVertexBuffer(0, vertexBuffer_);
+        commands.draw(static_cast<uint32_t>(kVertices.size()));
+        commands.endRendering();
     }
-
-    void Render::recordCommandBuffer(size_t index) {
-        const auto commandBuffer = m_commandPool.begin(index);
-        if (commandBuffer != VK_NULL_HANDLE) {
-            if (m_renderPass.begin(m_renderer.getContext().getSwapChain().getExtent(), commandBuffer, m_frameBuffers[index])) {
-                m_vertexBuffer.bind(commandBuffer);
-                m_pipeline.bind(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
-
-                vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
-                m_renderPass.end(commandBuffer);
-            }
-
-            m_commandPool.end(index);
-        }
-    }
-}
+} // namespace example

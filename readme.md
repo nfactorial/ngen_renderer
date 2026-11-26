@@ -1,9 +1,14 @@
 # nGen Renderer
 Rendering library for nGen game engine.
 
-nGen uses the Vulkan graphics API for cross-platform rendering. The ngen_vulkan library is intended
-to be a low-level wrapper around the Vulkan API to allow for re-use and refactoring of the higher
-level libraries.
+nGen uses the Vulkan graphics API for cross-platform rendering, behind a small graphics-API-neutral
+interface (the RHI).
+
+# Modules
+- `ngen_platform`: the `Window` interface, its SDL3 implementation `SdlWindow` and a `FakeWindow` for tests.
+- `ngen_rhi`: the RHI (`Device`, `CommandList`, handles and descriptions) and a `FakeDevice` for tests.
+- `ngen_rhi_vulkan`: the Vulkan implementation of the RHI, `VulkanDevice`.
+- `example`: an application that draws a vertex-coloured triangle through the above.
 
 See [documents/design/renderer.md](documents/design/renderer.md) for the planned structure.
 
@@ -11,11 +16,8 @@ See [documents/design/renderer.md](documents/design/renderer.md) for the planned
 - **CMake 3.24 or later.**
 - **Vulkan SDK** from [LunarG](https://vulkan.lunarg.com/sdk/home). The installer sets the `VULKAN_SDK`
   environment variable, which CMake uses to find Vulkan and the `slangc` shader compiler.
-- **SDL2.** If CMake can find an installed SDL2 (through its CMake package, e.g. by adding the install
-  folder to `CMAKE_PREFIX_PATH`), that is used. Otherwise SDL2 is downloaded and built automatically.
-
-The Vulkan library currently depends on SDL for creating the display surface. A goal is to remove this
-dependency so the Vulkan renderer can be used with or without SDL in the future.
+- **SDL3.** If CMake can find an installed SDL3 (through its CMake package, e.g. by adding the install
+  folder to `CMAKE_PREFIX_PATH`), that is used. Otherwise SDL3 is downloaded and built automatically.
 
 # Building
 ```
@@ -24,6 +26,13 @@ cmake --build --preset windows
 ```
 The example is written to `build/windows/example/Debug/`, with its compiled shaders in a `shaders`
 folder beside it. Run it from that folder, as it loads the shaders by relative path.
+
+# Running the tests
+```
+ctest --test-dir build/windows -C Debug --output-on-failure     # macOS: ctest --test-dir build/macos
+```
+This includes `example_missing_shader`, which runs the example without its compiled shader and checks it
+reports the missing file and exits with status 1.
 
 Options (pass with `-D<option>=ON|OFF`):
 - `NGEN_BUILD_EXAMPLE` (default ON): the example application.

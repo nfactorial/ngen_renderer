@@ -1,38 +1,43 @@
-#ifndef EXAMPLE_RENDER
-#define EXAMPLE_RENDER
+// Spec: example. Behaviour changes go through it.
+#pragma once
 
-#include <pipeline.h>
-#include <command_pool.h>
-#include <render_pass.h>
-#include <renderer.h>
-#include <shader.h>
-#include <buffer.h>
+#include <ngen/error.h>
+#include <ngen/rhi/command_list.h>
+#include <ngen/rhi/device.h>
+#include <ngen/rhi/handle.h>
 
-namespace example {
-    class Render {
+#include <cstddef>
+#include <expected>
+#include <vector>
+
+namespace example
+{
+    // The compiled shader, relative to the working directory.
+    inline constexpr const char *kTriangleShaderPath = "shaders/triangle.spv";
+
+    // Reads the compiled shader. NotFound, naming the path, when it cannot be opened.
+    [[nodiscard]] std::expected<std::vector<std::byte>, ngen::Error> loadShader(const char *path);
+
+    // The triangle's GPU resources. It destroys what it created on destruction, so it must be destroyed
+    // before the device it was created with.
+    class Triangle
+    {
     public:
-        Render();
-        ~Render();
+        explicit Triangle(ngen::rhi::Device &device);
+        ~Triangle();
+        Triangle(const Triangle &) = delete;
+        Triangle &operator=(const Triangle &) = delete;
 
-        bool initialize(SDL_Window *window, const char *applicationName);
-        void dispose();
+        // Creates the vertex buffer, shader and pipeline from the compiled shader's bytes.
+        [[nodiscard]] std::expected<void, ngen::Error> create(const std::vector<std::byte> &shaderBytes);
 
-        void render();
+        // Clears to black and draws the triangle over the whole frame.
+        void draw(ngen::rhi::CommandList &commands) const;
 
     private:
-        void recordCommandBuffer(size_t index);
-
-    private:
-        std::vector<VkFramebuffer> m_frameBuffers;
-
-        ngen::vulkan::Buffer m_vertexBuffer;
-        ngen::vulkan::Renderer m_renderer;
-        ngen::vulkan::Shader m_shader;     // Module holding both the vertex and fragment entry points.
-        ngen::vulkan::RenderPass m_renderPass;
-        ngen::vulkan::Pipeline m_pipeline;
-
-        ngen::vulkan::CommandPool m_commandPool;
+        ngen::rhi::Device &device_;
+        ngen::rhi::BufferHandle vertexBuffer_;
+        ngen::rhi::ShaderHandle shader_;
+        ngen::rhi::PipelineHandle pipeline_;
     };
-}
-
-#endif //EXAMPLE_RENDER
+} // namespace example

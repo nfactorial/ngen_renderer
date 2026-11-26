@@ -21,7 +21,6 @@ endif()
 add_subdirectory(ngen_platform)
 add_subdirectory(ngen_rhi)
 add_subdirectory(ngen_rhi_vulkan)
-add_subdirectory(ngen_vulkan)
 
 if (NGEN_BUILD_EXAMPLE)
     add_subdirectory(example)

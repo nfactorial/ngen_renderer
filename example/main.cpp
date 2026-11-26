@@ -1,78 +1,173 @@
-
-#include <cstdio>
-
-#include <SDL.h>
-#include <SDL_syswm.h>
-#include <SDL_video.h>
-
+// Spec: example. Behaviour changes go through it.
 #include "render.h"
 
-namespace {
-    const int SCREEN_WIDTH = 640;
-    const int SCREEN_HEIGHT = 480;
+#include <ngen/error.h>
+#include <ngen/platform/sdl_window.h>
+#include <ngen/platform/window.h>
+#include <ngen/rhi/device.h>
+#include <ngen/rhi/vulkan/vulkan_device.h>
 
-    const char* kApplicationTitle = "nGen - Vulkan Test";
-}
+#include <SDL3/SDL.h>
 
-void processEvent(const SDL_Event &event, bool &running) {
-    switch (event.type) {
-        case SDL_QUIT:
-            running = false;
-            break;
+#include <cstdio>
+#include <expected>
+#include <memory>
+#include <utility>
+#include <vector>
 
-        default:
-            break;
-    }
-}
+namespace
+{
+    constexpr const char *kApplicationTitle = "nGen - Vulkan Test";
+    constexpr uint32_t kWindowWidth = 640;
+    constexpr uint32_t kWindowHeight = 480;
+    constexpr Sint32 kIdleWaitMs = 100;
 
-int main(int argc, char **argv) {
-    int result = -1;
+    // Drains the window's events into the device. Returns false once the window asks to close.
+    std::expected<bool, ngen::Error> forwardWindowEvents(ngen::platform::SdlWindow &window, ngen::rhi::Device &device,
+                                                         std::vector<ngen::platform::WindowEvent> &events)
+    {
+        using Kind = ngen::platform::WindowEvent::Kind;
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
-        printf( "Failed to initialize SDL - Error: %s\n", SDL_GetError());
-    } else {
-
-        SDL_Window *window = SDL_CreateWindow(
-              kApplicationTitle
-            , SDL_WINDOWPOS_UNDEFINED
-            , SDL_WINDOWPOS_UNDEFINED
-            , SCREEN_WIDTH
-            , SCREEN_HEIGHT
-            , SDL_WINDOW_SHOWN | SDL_WINDOW_VULKAN
-        );
-
-        if (!window) {
-            printf("Failed to create window for testing.\n");
-            printf("%s\n", SDL_GetError());
-        } else {
-            example::Render render;
-
-            bool running = render.initialize(window, kApplicationTitle);
-            if (running) {
-                result = 0;
-            } else {
-                printf("Failed to initialize renderer.\n");
-            }
-
-            while (running) {
-                SDL_Event event;
-
-                while (SDL_PollEvent(&event)) {
-                    processEvent(event, running);
+        bool running = true;
+        events.clear();
+        window.pollEvents(events);
+        for (const auto &event : events)
+        {
+            switch (event.kind)
+            {
+            case Kind::Resized:
+                device.onResized(event.size);
+                break;
+            case Kind::Suspended:
+                device.onSuspended();
+                break;
+            case Kind::Resumed:
+            {
+                // Handles from before the suspension are invalid, so fetch fresh ones.
+                const auto handles = window.nativeWindow();
+                if (!handles)
+                {
+                    return std::unexpected(handles.error());
                 }
-
-                render.render();
-
-                SDL_Delay(1);
+                if (auto resumed = device.onResumed(*handles, event.size); !resumed)
+                {
+                    return std::unexpected(std::move(resumed.error()));
+                }
+                break;
             }
+            case Kind::CloseRequested:
+                running = false;
+                break;
+            }
+        }
+        return running;
+    }
 
-            render.dispose();
-
-            SDL_DestroyWindow(window);
+    // Everything lives in this scope, so the triangle is destroyed before the device and the device
+    // before the window; the caller runs SDL_Quit after.
+    std::expected<void, ngen::Error> runExample(const std::vector<std::byte> &shaderBytes)
+    {
+        auto window = ngen::platform::SdlWindow::create({kApplicationTitle, kWindowWidth, kWindowHeight, true});
+        if (!window)
+        {
+            return std::unexpected(std::move(window.error()));
         }
 
-        SDL_Quit();
+        ngen::rhi::DeviceDescription description;
+        description.applicationName = kApplicationTitle;
+        description.enableValidation = true;
+        auto device = ngen::rhi::vulkan::VulkanDevice::create(description, ngen::rhi::vulkan::WindowSupport::Expected);
+        if (!device)
+        {
+            return std::unexpected(std::move(device.error()));
+        }
+
+        const auto handles = (*window)->nativeWindow();
+        if (!handles)
+        {
+            return std::unexpected(handles.error());
+        }
+        if (auto attached = (*device)->attachWindow(*handles, (*window)->pixelSize()); !attached)
+        {
+            return std::unexpected(std::move(attached.error()));
+        }
+
+        example::Triangle triangle(**device);
+        if (auto created = triangle.create(shaderBytes); !created)
+        {
+            return std::unexpected(std::move(created.error()));
+        }
+
+        std::vector<ngen::platform::WindowEvent> events;
+        bool idle = false; // no command list last frame, so wait for events instead of spinning
+        for (;;)
+        {
+            SDL_Event event;
+            if (idle && SDL_WaitEventTimeout(&event, kIdleWaitMs))
+            {
+                (*window)->handleEvent(event);
+            }
+            while (SDL_PollEvent(&event))
+            {
+                (*window)->handleEvent(event);
+            }
+
+            const auto running = forwardWindowEvents(**window, **device, events);
+            if (!running)
+            {
+                return std::unexpected(running.error());
+            }
+            if (!*running)
+            {
+                break;
+            }
+
+            const auto commands = (*device)->beginFrame();
+            if (!commands)
+            {
+                return std::unexpected(commands.error());
+            }
+            idle = *commands == nullptr;
+            if (idle)
+            {
+                continue;
+            }
+
+            triangle.draw(**commands);
+            if (auto ended = (*device)->endFrame(); !ended)
+            {
+                return std::unexpected(std::move(ended.error()));
+            }
+        }
+
+        (*device)->waitIdle();
+        return {};
+    }
+} // namespace
+
+int main()
+{
+    // The shader is read first, so a missing one is reported before anything is created.
+    const auto shaderBytes = example::loadShader(example::kTriangleShaderPath);
+    if (!shaderBytes)
+    {
+        std::fprintf(stderr, "%s\n", shaderBytes.error().message.c_str());
+        return 1;
     }
 
-    return result;
+    if (!SDL_Init(SDL_INIT_VIDEO))
+    {
+        std::fprintf(stderr, "Failed to initialise SDL: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    const auto result = runExample(*shaderBytes);
+    SDL_Quit();
+
+    if (!result)
+    {
+        std::fprintf(stderr, "%s\n", result.error().message.c_str());
+        return 1;
+    }
+    return 0;
 }
