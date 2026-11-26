@@ -29,18 +29,25 @@ together.
   validation on, and reaches the GPU only through `ngen::rhi::Device` and `CommandList`.
 - The window is 640 × 480, resizable, titled "nGen - Vulkan Test".
 - The triangle's vertices are positions (`R32G32Float`, location 0) and colours
-  (`R32G32B32Float`, location 1) in one binding: (0, −0.5) red, (0.5, 0.5) green,
+  (`R32G32B32Float`, location 1), interleaved and packed in binding 0 (position at offset 0,
+  colour at offset 8, stride 20): (0, −0.5) red, (0.5, 0.5) green,
   (−0.5, 0.5) blue. Its shader is `example/shaders/triangle.slang`, with entry points
   `vertexMain` and `fragmentMain`, compiled to `shaders/triangle.spv` beside the executable as
   the build does today. The pipeline culls nothing, so the winding has no effect.
 - Each frame clears to black and draws the triangle over the whole window.
-- The example prints nothing when all is well. It prints each failure to `stderr` and exits
-  with status 1 if start-up fails, and 0 when the window is closed.
-- The frame loop polls SDL events, passes each to the window, forwards the window's
-  `Resized`, `Suspended` and `Resumed` events to the device, and stops on `CloseRequested`.
+- The example prints nothing when all is well, and exits with status 0 when the window is
+  closed. Any failure, at start-up or after it (fetching the window's handles, `onResumed`,
+  `beginFrame` or `endFrame` returning an error), is printed once to `stderr`; the example then
+  shuts down as the guardrails order and exits with status 1. `beginFrame` returning no command
+  list is not a failure.
+- The frame loop passes every SDL event, polled or returned by `SDL_WaitEventTimeout`, to
+  `SdlWindow::handleEvent`, then drains the window's `pollEvents` and forwards its `Resized`,
+  `Suspended` and `Resumed` events to the device, and stops on `CloseRequested`. On `Resumed` it
+  fetches fresh handles with `nativeWindow()` before calling `onResumed`, because handles from
+  before a suspension are invalid.
   While `beginFrame` returns no command list, it waits for events (`SDL_WaitEventTimeout`, 100 ms)
   instead of spinning.
-- The example links SDL3 only; SDL2 leaves the build once nothing uses it.
+- The example links SDL3 only.
 
 ## Modules and interfaces
 
@@ -68,8 +75,7 @@ down in reverse order.
 | `example/main.cpp`, `example/render.cpp`, `example/render.h`, `example/CMakeLists.txt` | modify | code |
 | `ngen_vulkan/` | delete | code |
 | `CMakeLists.txt` | modify (remove `ngen_vulkan`) | config |
-| `cmake/dependencies.cmake` | modify (remove SDL2) | config |
-| `readme.md` | modify (modules, dependencies: SDL3, VMA, GoogleTest; running the tests) | config |
+| `readme.md` | modify (modules, dependencies, running the tests) | config |
 
 **Fixed:**
 - The window, triangle and behaviour in *Constraints*.
@@ -82,12 +88,12 @@ down in reverse order.
 - Every handle the example creates is destroyed before the device.
 
 **Done when:**
-- *Agent-checkable:* both acceptance criteria hold when run · a grep of the source tree and CMake
-  files finds neither `ngen_vulkan` nor SDL2 · the project configures and builds from a
+- *Agent-checkable:* the missing-shader criterion holds when run · a grep of the source tree and
+  CMake files finds no `ngen_vulkan` · the project configures and builds from a
   clean build folder · `ctest` passes.
 - *Human check:* the milestone check: run `build/windows/example/Debug/example.exe` from its
   folder; the triangle draws; drag the window larger and smaller, minimise and restore it, and the
   triangle keeps drawing, centred and filling the same share of the window at every size, with
-  nothing printed.
+  nothing printed; closing the window exits with status 0 and nothing printed.
 
 **Delegation:** Sonnet implementer, light review. One application, nothing else relies on it.
