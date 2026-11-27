@@ -351,8 +351,18 @@ resource other than the swap chain image, so its read rules get tests through `c
 - **Add** (Render graph › RenderGraph, Acceptance): "A pass reading `TestImage{1}` imported as
   `ShaderRead` while writing it as its colour target makes `compile` return `InvalidArgument`
   naming the pass; so does a pass reading the swap chain image imported as `ColorAttachment`."
+- **Add** (Render graph › RenderGraph, Requirements): "`execute` of a graph with a pass that
+  writes or reads a `TestImage` import returns `InvalidArgument` naming the first such pass in
+  run order, and records nothing, because no device has an image behind a `TestImage`."
+- **Add** (Render graph › RenderGraph, Acceptance): "`execute` onto a `FakeDevice` frame of the
+  graph with passes "w" and "r" above returns `InvalidArgument` naming "w", and the frame
+  records no command."
 - **Add** (RHI Vulkan backend, Constraints): "A `barrier` on a `TestImage` records nothing and
   sends an `Error` message naming the test-only target."
+- **Add** (RHI Vulkan backend, Acceptance): "In a frame, `barrier({TestImage{1}, Undefined,
+  ShaderRead})` sends one `Error` message naming the test-only target and records no pipeline
+  barrier; a following `barrier({SwapChainImage, Undefined, ColorAttachment})` is accepted and
+  records one."
 
 **Read first:** `ngen_rhi/include/ngen/rhi/descriptions.h`, `ngen_rhi/source/descriptions.cpp`,
 `ngen_rhi/source/fake_device.cpp`, `ngen_rhi_vulkan/source/command_list.cpp`,
@@ -367,7 +377,8 @@ resource other than the swap chain image, so its read rules get tests through `c
 | ngen_rhi/source/fake_device.cpp `barrier`, `trackedState` | modify | code |
 | ngen_rhi/tests/descriptions_tests.cpp, fake_device_tests.cpp | modify | code |
 | ngen_rhi_vulkan/source/command_list.cpp `barrier`, `tracked` | modify | code |
-| ngen_renderer/source/render_graph.cpp `shaderReadable` | modify | code |
+| ngen_rhi_vulkan/tests/window_tests.cpp | modify | code |
+| ngen_renderer/source/render_graph.cpp `shaderReadable`, `execute` | modify | code |
 | ngen_renderer/tests/render_graph_tests.cpp | modify | code |
 
 **Fixed:** the names `TestImage` and its `id` field. Every place that visits a
