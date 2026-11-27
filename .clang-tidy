@@ -1,0 +1,36 @@
+# clang-tidy checks for ngen. Editors that run clang-tidy (CLion, clangd, Visual Studio) read this
+# file; the build does not run it, so nothing extra is needed to compile.
+#
+# Style and naming are free (see CLAUDE.md), so only checks that catch bugs or cost performance
+# are enabled. Checks are turned off below when they are noisy or contradict the project's style.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  performance-*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-nodiscard,
+  -modernize-avoid-c-arrays,
+  misc-const-correctness,
+  readability-avoid-const-params-in-decls,
+  readability-container-size-empty,
+  readability-redundant-smartptr-get,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-special-member-functions
+
+CheckOptions:
+  # Matches CLAUDE.md: const by-value parameters in definitions, not in declarations.
+  - key: misc-const-correctness.AnalyzeValues
+    value: true
+  - key: misc-const-correctness.WarnPointersAsValues
+    value: false
+  # A class that only deletes or defaults its copy operations need not declare them all.
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true
+  - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted
+    value: true
+
+# Report problems in ngen's own headers, not in fetched dependencies or system headers.
+HeaderFilterRegex: '.*/(ngen_[a-z_]+|example)/.*'
