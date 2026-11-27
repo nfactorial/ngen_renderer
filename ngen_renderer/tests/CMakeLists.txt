@@ -1,5 +1,6 @@
 add_executable(ngen_renderer_tests
     render_graph_tests.cpp
+    renderer_tests.cpp
 )
 
 target_link_libraries(ngen_renderer_tests PRIVATE

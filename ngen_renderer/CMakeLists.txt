@@ -1,5 +1,7 @@
 add_library(ngen_renderer STATIC
+    source/configuration.cpp
     source/render_graph.cpp
+    source/renderer.cpp
 )
 add_library(ngen::renderer ALIAS ngen_renderer)
 

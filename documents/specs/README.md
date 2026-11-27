@@ -62,3 +62,4 @@ Check: run the example: a rotating, lit 3D mesh draws with depth beside the spri
 - `HandlePool` clear or iteration (change to `rhi`): let a pool be cleared or iterated, so a backend can free its live resources without resetting the pool.
 - Event pump helper (change to `platform`): a shared helper that runs the SDL wait/poll loop and feeds `SdlWindow::handleEvent`, so each application need not own that loop.
 - Live resize redraw (change to `example`): keep drawing the triangle while the window is being dragged to a new size, not only once the drag ends.
+- `FakeDevice` frame errors (change to `rhi`): an opt-in way to make `FakeDevice`'s `beginFrame` or `endFrame` fail, so code built on the RHI can test that their errors are passed through.

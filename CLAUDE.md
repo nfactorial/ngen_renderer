@@ -61,7 +61,9 @@ already guarantees instead of re-checking it defensively.
 - Every resource is owned by exactly one object whose destructor releases it (RAII). A class
   that owns a resource is move-only: it deletes its copy operations and has `noexcept` move
   operations that leave the source empty (`std::exchange` with a null value).
-- Types that own nothing follow the rule of zero: no user-declared copy, move or destructor.
+- Types that own nothing follow the rule of zero: no user-declared copy, move or destructor. This
+  includes public concrete classes (such as `Renderer`); the deleted copies below are for
+  interfaces only.
 - Ownership is `std::unique_ptr` or a value member; non-owning access is a reference, or a raw
   pointer when it may be null. No `shared_ptr` unless ownership is truly shared, and no bare `new`
   outside a private-constructor factory that wraps it at once in a `unique_ptr`.
@@ -91,7 +93,7 @@ already guarantees instead of re-checking it defensively.
   are passed by `const&` when the function only reads them. Pass by value only for small types,
   or for a sink that keeps its own copy (taken by value and `std::move`d, so it is never `const`).
   Contiguous read-only input is a `std::span<const T>`.
-- Locals that don't change are `const`. Member functions that don't change state are `const`.
+- Locals that don't change are `const`, unless they are moved from (a `const` object can't be). Member functions that don't change state are `const`.
 
 ### Portability
 
@@ -120,8 +122,8 @@ from.
 Tests use GoogleTest, named `Suite.WhatHappensUnderWhichCondition`. Logic is tested through the
 fake backend (`FakeDevice`, `FakeWindow`) or through pure functions taking plain inputs (as
 `choosePhysicalDevice` does), so it runs without a GPU; tests that need a real device are labelled
-`gpu`. A test asserts the behaviour the spec states, including that no warning or error reaches the
-message sink.
+`gpu`. A test asserts the behaviour the spec states, including, for a test that uses a device, that
+no warning or error reaches the message sink.
 
 ## clang-tidy
 

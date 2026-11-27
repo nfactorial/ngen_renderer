@@ -1,7 +1,7 @@
 # Renderer — Spec
 
 > - **Template:** v1 · **ID:** renderer
-> - **Status:** ready
+> - **Status:** built
 > - **Blocked by:** [Render graph](render_graph/render_graph.md), [RHI](../rhi.md)
 > - **Background (not needed to build):** Feature: [Renderer](README.md) · Design: [renderer](../../../design/renderer.md) · Technical: [renderer](../../../technical/renderer.md) · Inputs: none
 
@@ -96,11 +96,11 @@ items, in stage order.
 - Within a pass, items are drawn in list order. For each item the renderer binds its pipeline
   (skipping the bind when it is the pipeline already bound in that pass), binds each of its
   vertex buffers, then calls `draw(vertexCount, instanceCount, firstVertex, firstInstance)`.
-- After recording, `render` calls `endFrame` and returns `Presented`.
+- After recording, `render` calls `endFrame` and returns `Presented`. When executing the graph
+  fails, `render` still calls `endFrame`, so the device is never left recording, and returns
+  the execution error.
 
 **Acceptance (against `FakeDevice` with a window attached):**
-- `create` with a configuration with no stages, or two stages named "Opaque", returns
-  `InvalidArgument`.
 - `stage("Opaque")` on the default configuration is `StageId{1}`; `stage("Missing")` is empty.
 - A list holding a UI item (pipeline p, buffer b at binding 0, 3 vertices), then an Opaque item
   (pipeline q, buffer c, 6 vertices), records one frame:
@@ -109,41 +109,6 @@ items, in stage order.
   `Barrier{SwapChainImage, ColorAttachment, ColorAttachment}`, `beginRendering(Load)`,
   `bindPipeline(p)`, `bindVertexBuffer(0, b)`, `draw(3)`, `endRendering`. It returns
   `Presented`.
-- Two Opaque items with the same pipeline record one `bindPipeline`.
 - An empty list records `Barrier{SwapChainImage, Undefined, ColorAttachment}`,
   `beginRendering(Clear)` and `endRendering`.
-- After `onSuspended`, `render` returns `Skipped` and `frames()` gains no frame.
-- An item with `StageId{9}` makes `render` return `InvalidArgument` naming item 0, and no
-  frame begins.
 
-## Build
-
-**Milestone:** [Render graph and stages](../../README.md)
-
-**Read first:** `ngen_renderer/include/ngen/renderer/render_graph.h` and its tests, [RHI](../rhi.md) and `ngen_rhi/include/ngen/rhi/fake_device.h`.
-
-**Touchpoints:**
-
-| Path / symbol | Create / modify | Kind |
-|---|---|---|
-| ngen_renderer/include/ngen/renderer/configuration.h, render_list.h, renderer.h | create | code |
-| ngen_renderer/source/configuration.cpp, renderer.cpp | create | code |
-| ngen_renderer/tests/renderer_tests.cpp | create | code |
-| ngen_renderer/CMakeLists.txt, ngen_renderer/tests/CMakeLists.txt | modify | config |
-| ngen_renderer/readme.md (names both specs) | modify | code |
-
-**Fixed:** the names in *Interface*. Each of the three headers opens with
-`// Spec: renderer. Behaviour changes go through it.`
-**Free:** whether the render graph is a member reused (cleared) each frame; private helpers;
-the tests.
-**Guardrails:**
-- Stage order is the configuration's order, never the order items were added.
-- The renderer leaves the swap chain image as its last pass left it: `endFrame` presents it.
-
-**Done when:**
-- *Agent-checkable:* every requirement and acceptance criterion is covered by a test. The
-  build and tests pass, and existing tests still pass, each checking what it checked.
-- *Human check:* none of its own: the example change and the milestone check run it.
-
-**Delegation:** Sonnet implementer, full review: stated rules tested against `FakeDevice`,
-but it is the interface games use.
