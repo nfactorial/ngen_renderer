@@ -4,6 +4,8 @@
 # Formatting is free (see CLAUDE.md); checks are enabled when they catch bugs, cost performance, or
 # affect readability and function size. Checks are turned off below when they are noisy, give
 # false positives here, or only concern formatting. Findings are hints to examine, not orders.
+# modernize-use-ranges is off because it suggests C++23 algorithms not yet in every target's
+# standard library (see "Portability" in CLAUDE.md).
 Checks: >
   -*,
   bugprone-*,
@@ -13,6 +15,7 @@ Checks: >
   performance-*,
   -performance-enum-size,
   modernize-*,
+  -modernize-use-ranges,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard,
   -modernize-avoid-c-arrays,
