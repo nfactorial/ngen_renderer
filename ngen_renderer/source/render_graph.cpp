@@ -14,6 +14,7 @@ namespace ngen::renderer
         // What the graph tracks about a resource while compiling.
         struct ResourceTrack
         {
+            rhi::BarrierTarget target;
             rhi::ResourceState state;
             bool written = false;
         };
@@ -34,11 +35,53 @@ namespace ngen::renderer
             return std::unexpected(
                 ngen::makeError(ngen::ErrorCode::InvalidArgument, "pass \"" + pass + "\": " + reason));
         }
+
+        // Checks that a pass is legal against the graph's state before it runs. A valid pass's name is added to
+        // names; index is its position in addPass order, used to name a pass with no name.
+        std::expected<void, ngen::Error> validatePass(const PassDescription &pass, const size_t index,
+                                                      std::unordered_set<std::string> &names,
+                                                      const std::vector<ResourceTrack> &tracks)
+        {
+            const auto issued = [&tracks](const ResourceId id) { return id.index < tracks.size(); };
+
+            if (pass.name.empty())
+            {
+                return invalid("#" + std::to_string(index), "name is empty");
+            }
+            if (!names.insert(pass.name).second)
+            {
+                return invalid(pass.name, "name is used by more than one pass");
+            }
+            if (!issued(pass.color.target))
+            {
+                return invalid(pass.name, "color.target is not a resource of this graph");
+            }
+            for (const ResourceId read : pass.reads)
+            {
+                if (!issued(read))
+                {
+                    return invalid(pass.name, "reads names a resource not in this graph");
+                }
+                if (read == pass.color.target)
+                {
+                    return invalid(pass.name, "reads its own colour target");
+                }
+                if (!hasDefinedContents(tracks[read.index]))
+                {
+                    return invalid(pass.name, "reads a resource with no defined contents");
+                }
+                if (!shaderReadable(tracks[read.index].target))
+                {
+                    return invalid(pass.name, "reads the swap chain image, which shaders cannot read");
+                }
+            }
+            return {};
+        }
     } // namespace
 
-    ResourceId RenderGraph::importTarget(rhi::BarrierTarget target, const rhi::ResourceState current)
+    ResourceId RenderGraph::importTarget(const rhi::BarrierTarget target, const rhi::ResourceState current)
     {
-        resources_.push_back({std::move(target), current});
+        resources_.push_back({target, current});
         return ResourceId{static_cast<uint32_t>(resources_.size() - 1)};
     }
 
@@ -68,46 +111,18 @@ namespace ngen::renderer
         tracks.reserve(resources_.size());
         for (const Resource &resource : resources_)
         {
-            tracks.push_back({resource.state});
+            tracks.push_back({resource.target, resource.state});
         }
 
         CompiledGraph graph;
         std::unordered_set<std::string> names;
-        const auto issued = [this](const ResourceId id) { return id.index < resources_.size(); };
 
         for (const size_t index : runOrder())
         {
             const PassDescription &pass = passes_[index];
-            if (pass.name.empty())
+            if (auto valid = validatePass(pass, index, names, tracks); !valid)
             {
-                return invalid("#" + std::to_string(index), "name is empty");
-            }
-            if (!names.insert(pass.name).second)
-            {
-                return invalid(pass.name, "name is used by more than one pass");
-            }
-            if (!issued(pass.color.target))
-            {
-                return invalid(pass.name, "color.target is not a resource of this graph");
-            }
-            for (const ResourceId read : pass.reads)
-            {
-                if (!issued(read))
-                {
-                    return invalid(pass.name, "reads names a resource not in this graph");
-                }
-                if (read == pass.color.target)
-                {
-                    return invalid(pass.name, "reads its own colour target");
-                }
-                if (!hasDefinedContents(tracks[read.index]))
-                {
-                    return invalid(pass.name, "reads a resource with no defined contents");
-                }
-                if (!shaderReadable(resources_[read.index].target))
-                {
-                    return invalid(pass.name, "reads the swap chain image, which shaders cannot read");
-                }
+                return std::unexpected(std::move(valid.error()));
             }
 
             CompiledPass compiled;
@@ -117,7 +132,7 @@ namespace ngen::renderer
             if (color.state != rhi::ResourceState::ColorAttachment || color.written)
             {
                 compiled.barriers.push_back(
-                    {resources_[pass.color.target.index].target, color.state, rhi::ResourceState::ColorAttachment});
+                    {color.target, color.state, rhi::ResourceState::ColorAttachment});
             }
 
             if (pass.color.clear)
@@ -138,7 +153,7 @@ namespace ngen::renderer
                 if (track.state != rhi::ResourceState::ShaderRead)
                 {
                     compiled.barriers.push_back(
-                        {resources_[read.index].target, track.state, rhi::ResourceState::ShaderRead});
+                        {track.target, track.state, rhi::ResourceState::ShaderRead});
                 }
                 track.state = rhi::ResourceState::ShaderRead;
                 track.written = false;

@@ -7,22 +7,11 @@
 
 namespace ngen::rhi::vulkan
 {
-    std::expected<DeviceChoice, std::string> choosePhysicalDevice(
-        const std::span<const PhysicalDeviceCandidate> candidates, const bool windowExpected)
+    namespace
     {
-        if (candidates.empty())
+        // Why a candidate is unsuitable; empty when it is suitable.
+        std::vector<std::string> rejectionReasons(const PhysicalDeviceCandidate &candidate, const bool windowExpected)
         {
-            return std::unexpected(std::string("no Vulkan physical devices were found"));
-        }
-
-        std::optional<DeviceChoice> chosen;
-        bool chosenIsDiscrete = false;
-        std::string rejections;
-
-        for (size_t index = 0; index < candidates.size(); ++index)
-        {
-            const PhysicalDeviceCandidate &candidate = candidates[index];
-
             std::vector<std::string> reasons;
             if (!candidate.graphicsFamily.has_value())
             {
@@ -40,7 +29,27 @@ namespace ngen::rhi::vulkan
             {
                 reasons.emplace_back("has no graphics queue family that can present");
             }
+            return reasons;
+        }
+    } // namespace
 
+    std::expected<DeviceChoice, std::string> choosePhysicalDevice(
+        const std::span<const PhysicalDeviceCandidate> candidates, const bool windowExpected)
+    {
+        if (candidates.empty())
+        {
+            return std::unexpected(std::string("no Vulkan physical devices were found"));
+        }
+
+        std::optional<DeviceChoice> chosen;
+        bool chosenIsDiscrete = false;
+        std::string rejections;
+
+        for (size_t index = 0; index < candidates.size(); ++index)
+        {
+            const PhysicalDeviceCandidate &candidate = candidates[index];
+
+            const std::vector<std::string> reasons = rejectionReasons(candidate, windowExpected);
             if (!reasons.empty())
             {
                 rejections += rejections.empty() ? "" : "; ";

@@ -180,7 +180,7 @@ namespace ngen::rhi::vulkan
         }
 
         VkClearValue clear{};
-        std::copy(target.clearColor.begin(), target.clearColor.end(), clear.color.float32);
+        std::ranges::copy(target.clearColor, clear.color.float32);
 
         VkRenderPassBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
