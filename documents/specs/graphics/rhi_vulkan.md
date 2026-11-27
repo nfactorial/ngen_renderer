@@ -69,6 +69,9 @@ also be created with no window, for tests.
   made from it. `createPipeline` creates the variant for the swap chain's current format, or for
   `B8G8R8A8_UNORM` when there is no swap chain; after a recreation changes the format, binding a
   pipeline creates the new format's variant if it has none, and its handle stays valid.
+- Primitive restart is enabled for `TriangleStrip` pipelines and disabled for list topologies:
+  Metal cannot disable it (MoltenVK warns when asked to), and core Vulkan forbids it on lists. It
+  has no effect until indexed draws exist.
 - Viewport and scissor are dynamic pipeline state. Every `beginRendering` sets both to the full
   target image, so a `setViewport` or `setScissor` lasts until the end of its pass; one made
   outside a pass is recorded and overridden by the next `beginRendering`.

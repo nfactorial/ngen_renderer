@@ -240,6 +240,9 @@ namespace ngen::rhi::vulkan
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssembly.topology = toVulkan(description_.topology);
+        // Strips restart on the all-ones index, matching Metal, which cannot turn restart off. Core
+        // Vulkan forbids restart on list topologies, so it stays off for them.
+        inputAssembly.primitiveRestartEnable = description_.topology == Topology::TriangleStrip ? VK_TRUE : VK_FALSE;
 
         // Viewport and scissor are dynamic; only their counts are fixed.
         VkPipelineViewportStateCreateInfo viewport{};
