@@ -29,7 +29,7 @@ namespace
                   description.messageSink = [this](const Severity severity, const std::string_view text) {
                       if (severity != Severity::Info)
                       {
-                          problems.push_back(std::string(text));
+                          problems.emplace_back(text);
                       }
                   };
                   return FakeDevice(std::move(description));
@@ -67,7 +67,7 @@ namespace
                       const uint32_t vertexCount)
         {
             DrawItem draw;
-            draw.stage = *renderer->stage(stageName);
+            draw.stage = renderer->stage(stageName).value();
             draw.pipeline = pipeline;
             draw.vertexBuffers = {{0, buffer}};
             draw.vertexCount = vertexCount;
