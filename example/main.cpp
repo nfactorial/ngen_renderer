@@ -4,6 +4,8 @@
 #include <ngen/error.h>
 #include <ngen/platform/sdl_window.h>
 #include <ngen/platform/window.h>
+#include <ngen/renderer/render_list.h>
+#include <ngen/renderer/renderer.h>
 #include <ngen/rhi/device.h>
 #include <ngen/rhi/vulkan/vulkan_device.h>
 
@@ -63,7 +65,7 @@ namespace
         return running;
     }
 
-    // Everything lives in this scope, so the triangle is destroyed before the device and the device
+    // Everything lives in this scope, so the triangle and renderer are destroyed before the device and the device
     // before the window; the caller runs SDL_Quit after.
     std::expected<void, ngen::Error> runExample(const std::vector<std::byte> &shaderBytes)
     {
@@ -92,6 +94,17 @@ namespace
             return std::unexpected(std::move(attached.error()));
         }
 
+        auto renderer = ngen::renderer::Renderer::create(**device, {});
+        if (!renderer)
+        {
+            return std::unexpected(std::move(renderer.error()));
+        }
+        const auto opaque = (*renderer)->stage("Opaque");
+        if (!opaque)
+        {
+            return std::unexpected(ngen::makeError(ngen::ErrorCode::Internal, "the renderer has no Opaque stage"));
+        }
+
         example::Triangle triangle(**device);
         if (auto created = triangle.create(shaderBytes); !created)
         {
@@ -99,7 +112,8 @@ namespace
         }
 
         std::vector<ngen::platform::WindowEvent> events;
-        bool idle = false; // no command list last frame, so wait for events instead of spinning
+        ngen::renderer::RenderList list;
+        bool idle = false; // the frame was skipped last frame, so wait for events instead of spinning
         for (;;)
         {
             SDL_Event event;
@@ -122,22 +136,14 @@ namespace
                 break;
             }
 
-            const auto commands = (*device)->beginFrame();
-            if (!commands)
+            list.clear();
+            triangle.draw(list, *opaque);
+            const auto frame = (*renderer)->render(list);
+            if (!frame)
             {
-                return std::unexpected(commands.error());
+                return std::unexpected(frame.error());
             }
-            idle = *commands == nullptr;
-            if (idle)
-            {
-                continue;
-            }
-
-            triangle.draw(**commands);
-            if (auto ended = (*device)->endFrame(); !ended)
-            {
-                return std::unexpected(std::move(ended.error()));
-            }
+            idle = *frame == ngen::renderer::FrameResult::Skipped;
         }
 
         (*device)->waitIdle();

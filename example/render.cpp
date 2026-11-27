@@ -105,12 +105,13 @@ namespace example
         return {};
     }
 
-    void Triangle::draw(ngen::rhi::CommandList &commands) const
+    void Triangle::draw(ngen::renderer::RenderList &list, const ngen::renderer::StageId stage) const
     {
-        commands.beginRendering({}); // clears to black
-        commands.bindPipeline(pipeline_);
-        commands.bindVertexBuffer(0, vertexBuffer_);
-        commands.draw(static_cast<uint32_t>(kVertices.size()));
-        commands.endRendering();
+        ngen::renderer::DrawItem item;
+        item.stage = stage;
+        item.pipeline = pipeline_;
+        item.vertexBuffers = {{0, vertexBuffer_}};
+        item.vertexCount = static_cast<uint32_t>(kVertices.size());
+        list.add(std::move(item));
     }
 } // namespace example

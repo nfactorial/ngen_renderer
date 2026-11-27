@@ -2,7 +2,7 @@
 #pragma once
 
 #include <ngen/error.h>
-#include <ngen/rhi/command_list.h>
+#include <ngen/renderer/render_list.h>
 #include <ngen/rhi/device.h>
 #include <ngen/rhi/handle.h>
 
@@ -31,8 +31,8 @@ namespace example
         // Creates the vertex buffer, shader and pipeline from the compiled shader's bytes.
         [[nodiscard]] std::expected<void, ngen::Error> create(const std::vector<std::byte> &shaderBytes);
 
-        // Clears to black and draws the triangle over the whole frame.
-        void draw(ngen::rhi::CommandList &commands) const;
+        // Adds the triangle to the list as one draw item in the given stage.
+        void draw(ngen::renderer::RenderList &list, ngen::renderer::StageId stage) const;
 
     private:
         ngen::rhi::Device &device_;

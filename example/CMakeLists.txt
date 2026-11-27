@@ -3,7 +3,7 @@ add_executable(example
     render.cpp
 )
 
-target_link_libraries(example PRIVATE ngen::platform ngen::rhi_vulkan ${NGEN_SDL3_TARGET})
+target_link_libraries(example PRIVATE ngen::platform ngen::renderer ngen::rhi_vulkan ${NGEN_SDL3_TARGET})
 
 # main.cpp provides its own main() rather than using SDL's main redirection.
 target_compile_definitions(example PRIVATE SDL_MAIN_HANDLED)
