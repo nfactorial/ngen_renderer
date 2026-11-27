@@ -260,3 +260,57 @@ code built on the RHI.
 - `createPipeline` with an attribute naming binding 1 when only binding 0 exists returns
   `InvalidArgument`.
 
+
+## Pending changes
+
+### FakeDevice frame errors  [ready]
+
+**Blocked by:** none
+
+**Brief:** `FakeDevice` gains an opt-in way to make its next `beginFrame` or `endFrame` fail
+with a given error, so code built on the RHI can test that it passes those errors through.
+
+**Changes:**
+- **Add** (FakeDevice, Interface): "`void failNextBeginFrame(ngen::Error)`,
+  `void failNextEndFrame(ngen::Error)`: the next call of that function returns the given error
+  instead of doing its work. Each applies to one call and is then cleared."
+- **Add** (FakeDevice, Requirements): "A `beginFrame` failed through `failNextBeginFrame` begins
+  no frame and returns no command list. An `endFrame` failed through `failNextEndFrame` still
+  ends the open frame, so the next `beginFrame` can begin one, but the frame is not added to
+  `frames()`. Neither sends a message to the sink. A failure set again before it is used
+  replaces the earlier one."
+- **Add** (FakeDevice, Acceptance): "After `failNextBeginFrame(DeviceLost, "lost")`,
+  `beginFrame` returns that error (code and message), and the following `beginFrame` returns a
+  command list."
+- **Add** (FakeDevice, Acceptance): "After `failNextEndFrame(DeviceLost, "lost")`, a frame that
+  records `draw`s and calls `endFrame` gets that error; `frames()` gains no frame, the sink
+  received nothing, and the next `beginFrame` returns a command list."
+
+**Read first:** `ngen_rhi/include/ngen/rhi/fake_device.h`, `ngen_rhi/source/fake_device.cpp`
+and `ngen_rhi/tests/fake_device_tests.cpp`.
+
+**Touchpoints:**
+
+| Path / symbol | Create / modify | Kind |
+|---|---|---|
+| ngen_rhi/include/ngen/rhi/fake_device.h `FakeDevice` | modify | code |
+| ngen_rhi/source/fake_device.cpp | modify | code |
+| ngen_rhi/tests/fake_device_tests.cpp | modify | code |
+
+**Fixed:** the two function names and signatures in *Changes*. A failure set and not yet used
+does not affect any other call (`attachWindow`, `onSuspended`, resource creation).
+**Free:** how the pending failure is stored; private helpers; the tests.
+**Guardrails:**
+- A failed call leaves the device in the state the requirement states: no frame after a failed
+  `beginFrame`, no open frame after a failed `endFrame`.
+- A failed `endFrame` still frees what a normal `endFrame` would let the next `beginFrame` free,
+  so deferred destruction behaves as after a lost submit: resources destroyed during that
+  frame are freed once frames are completed.
+
+**Done when:**
+- *Agent-checkable:* every requirement and acceptance criterion in Changes is covered by a
+  test. The build and tests pass, and existing tests still pass, each checking what it checked.
+- *Human check:* none: it is test infrastructure, proven by its tests.
+
+**Delegation:** Sonnet implementer, light review: a test-only addition to `FakeDevice` that no
+production code relies on.
