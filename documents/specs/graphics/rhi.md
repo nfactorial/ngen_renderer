@@ -314,3 +314,78 @@ does not affect any other call (`attachWindow`, `onSuspended`, resource creation
 
 **Delegation:** Sonnet implementer, light review: a test-only addition to `FakeDevice` that no
 production code relies on.
+
+### Test image barrier target  [ready]
+
+**Blocked by:** [RHI Vulkan backend](rhi_vulkan.md), [Render graph](renderer/render_graph/render_graph.md)
+**Milestone:** [Render graph and stages](../README.md)
+
+**Brief:** `BarrierTarget` gains a test-only alternative, `TestImage`, that shaders may read
+and that no device records barriers on. The render graph can then be given an imported
+resource other than the swap chain image, so its read rules get tests through `compile`.
+
+**Changes:**
+- **Replace** (Descriptions, Interface): "`using BarrierTarget = std::variant<SwapChainImage>`:
+  what a barrier applies to." → "`struct TestImage { uint32_t id; }`: a test-only target,
+  comparable with `==`, for code that only computes barriers (such as a render graph's
+  `compile`). Shaders may read it. `using BarrierTarget = std::variant<SwapChainImage,
+  TestImage>`: what a barrier applies to."
+- **Add** (Descriptions, Requirements): "`validate(Barrier, trackedState)` applies its
+  `after` and `before` rules to a `TestImage` as to any target, and accepts `ShaderRead` on
+  it."
+- **Add** (CommandList, Requirements, misuse list): "`barrier` on a `TestImage` (reported as a
+  test-only target, nothing else), because a device has no image behind it."
+- **Add** (FakeDevice, Acceptance): "`barrier({TestImage{1}, Undefined, ShaderRead})` records
+  nothing and sends one `Error` message naming the test-only target."
+- **Add** (Render graph › RenderGraph, Requirements): "A `TestImage` import may be read by a
+  pass's shaders; the swap chain image may not."
+- **Add** (Render graph › RenderGraph, Acceptance): "With the swap chain image imported as
+  `Undefined` and `TestImage{1}` imported as `Undefined`: a pass "w" (`order` 1) writing the
+  test image, then a pass "r" (`order` 2) writing the swap chain image and reading the test
+  image, compiles to "w" with barrier `{TestImage{1}, Undefined, ColorAttachment}`, then "r"
+  with barriers `{SwapChainImage, Undefined, ColorAttachment}` then
+  `{TestImage{1}, ColorAttachment, ShaderRead}`, in that order."
+- **Add** (Render graph › RenderGraph, Acceptance): "With `TestImage{1}` imported as
+  `ShaderRead`, two passes writing the swap chain image and each reading the test image give
+  the first pass no barrier on the test image and the second none either."
+- **Add** (Render graph › RenderGraph, Acceptance): "A pass reading `TestImage{1}` imported as
+  `ShaderRead` while writing it as its colour target makes `compile` return `InvalidArgument`
+  naming the pass; so does a pass reading the swap chain image imported as `ColorAttachment`."
+- **Add** (RHI Vulkan backend, Constraints): "A `barrier` on a `TestImage` records nothing and
+  sends an `Error` message naming the test-only target."
+
+**Read first:** `ngen_rhi/include/ngen/rhi/descriptions.h`, `ngen_rhi/source/descriptions.cpp`,
+`ngen_rhi/source/fake_device.cpp`, `ngen_rhi_vulkan/source/command_list.cpp`,
+`ngen_renderer/source/render_graph.cpp` and `ngen_renderer/tests/render_graph_tests.cpp`.
+
+**Touchpoints:**
+
+| Path / symbol | Create / modify | Kind |
+|---|---|---|
+| ngen_rhi/include/ngen/rhi/descriptions.h `TestImage`, `BarrierTarget` | modify | code |
+| ngen_rhi/source/descriptions.cpp `validate(const Barrier&, …)` | modify | code |
+| ngen_rhi/source/fake_device.cpp `barrier`, `trackedState` | modify | code |
+| ngen_rhi/tests/descriptions_tests.cpp, fake_device_tests.cpp | modify | code |
+| ngen_rhi_vulkan/source/command_list.cpp `barrier`, `tracked` | modify | code |
+| ngen_renderer/source/render_graph.cpp `shaderReadable` | modify | code |
+| ngen_renderer/tests/render_graph_tests.cpp | modify | code |
+
+**Fixed:** the names `TestImage` and its `id` field. Every place that visits a
+`BarrierTarget` keeps using `std::visit` with one case per alternative, so a later target
+still fails to compile wherever it is unhandled.
+**Free:** how a backend detects a `TestImage` before tracking state; private helpers; the
+tests.
+**Guardrails:**
+- The rejection of a `TestImage` barrier happens before any state tracking, so the swap chain
+  image's tracked state is unchanged by it.
+- The render graph treats a `TestImage` like any imported resource: the only difference from
+  the swap chain image is that shaders may read it.
+
+**Done when:**
+- *Agent-checkable:* every requirement and acceptance criterion in Changes is covered by a
+  test. The build and tests pass, and existing tests still pass, each checking what it checked.
+- *Human check:* none: it is test infrastructure and tests; the milestone check runs the
+  example.
+
+**Delegation:** Sonnet implementer, full review: it changes a public RHI type that every
+backend and the render graph visit.

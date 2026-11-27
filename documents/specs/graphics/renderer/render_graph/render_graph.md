@@ -103,3 +103,7 @@ with every barrier and load op decided.
 - `execute` onto a `FakeDevice` frame records, for the first acceptance's graph: the "b"
   barrier, `beginRendering(Clear)`, the commands "b" records, `endRendering`, the "a" barrier,
   `beginRendering(Load)`, the commands "a" records, `endRendering`, and nothing else.
+
+## Pending changes
+
+### Test image barrier target  (in [RHI](../../rhi.md))

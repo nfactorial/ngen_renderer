@@ -180,3 +180,7 @@ The Vulkan implementation of `ngen::rhi::Device`, owning every Vulkan object it 
   test pipeline presents with no `Warning` or `Error` message; so does a frame that records
   `beginRendering` with no barrier first, one that records no pass, and, in a later frame than
   the first, a `Load` pass recorded while the image is `Undefined`.
+
+## Pending changes
+
+### Test image barrier target  (in [RHI](rhi.md))
