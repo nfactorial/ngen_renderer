@@ -21,6 +21,8 @@ backend) and renderer.
 
 Check: run the example: the triangle draws through the renderer; the unit tests show passes ordered by stage and barriers inferred from declared reads and writes.
 
+- Test-only barrier target (change to `rhi`): a test-only alternative in `BarrierTarget` that `FakeDevice` accepts and shaders may read, so the render graph's read rules (reads in `ShaderRead`, no barrier for a read after a read, colour target before reads) get tests.
+
 
 ### Milestone: Android triangle
 
