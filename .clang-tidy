@@ -1,14 +1,17 @@
 # clang-tidy checks for ngen. Editors that run clang-tidy (CLion, clangd, Visual Studio) read this
 # file; the build does not run it, so nothing extra is needed to compile.
 #
-# Style and naming are free (see CLAUDE.md), so only checks that catch bugs or cost performance
-# are enabled. Checks are turned off below when they are noisy or contradict the project's style.
+# Formatting is free (see CLAUDE.md); checks are enabled when they catch bugs, cost performance, or
+# affect readability and function size. Checks are turned off below when they are noisy, give
+# false positives here, or only concern formatting. Findings are hints to examine, not orders.
 Checks: >
   -*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   clang-analyzer-*,
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
   performance-*,
+  -performance-enum-size,
   modernize-*,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard,
@@ -17,10 +20,13 @@ Checks: >
   readability-avoid-const-params-in-decls,
   readability-container-size-empty,
   readability-redundant-smartptr-get,
-  cppcoreguidelines-pro-type-member-init,
+  readability-function-cognitive-complexity,
   cppcoreguidelines-special-member-functions
 
 CheckOptions:
+  # Test assertion macros expand to branches; count only the code written in the function.
+  - key: readability-function-cognitive-complexity.IgnoreMacros
+    value: true
   # Matches CLAUDE.md: const by-value parameters in definitions, not in declarations.
   - key: misc-const-correctness.AnalyzeValues
     value: true
@@ -32,5 +38,8 @@ CheckOptions:
   - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted
     value: true
 
-# Report problems in ngen's own headers, not in fetched dependencies or system headers.
+# Report problems in ngen's own headers, not in fetched dependencies or system headers. The
+# repository folder is itself named ngen_renderer, so build folders (which hold the fetched
+# dependencies) are excluded explicitly.
 HeaderFilterRegex: '.*/(ngen_[a-z_]+|example)/.*'
+ExcludeHeaderFilterRegex: '.*/(build|cmake-build-[^/]*|_deps)/.*'
